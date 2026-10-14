@@ -8,7 +8,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans), "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+  --font-sans: var(--font-geist-sans), var(--font-noto-tc), "Noto Sans TC", "Microsoft JhengHei", sans-serif;
   --font-mono: var(--font-geist-mono);
 
   /* AICSM design tokens：深藍側欄＋藍色主色 */

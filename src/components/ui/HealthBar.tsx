@@ -37,3 +37,15 @@ export function HealthBar({ score }: { score: number | null }) {
     </div>
   );
 }
+
+const TEXT_DARK: Record<HealthBand, string> = {
+  healthy: "text-emerald-400",
+  atRisk: "text-amber-400",
+  critical: "text-rose-400",
+  none: "text-slate-400",
+};
+
+/** 深色背景上用的分數顏色（亮一階，對比足夠）。 */
+export function healthTextClassDark(score: number | null): string {
+  return TEXT_DARK[healthBand(score)];
+}

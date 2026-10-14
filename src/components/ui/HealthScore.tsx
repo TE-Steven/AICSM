@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { HEALTH_BAND_LABEL, type HealthResult } from "@/lib/health";
-import { healthTextClass } from "@/components/ui/HealthBar";
+import { healthTextClass, healthTextClassDark } from "@/components/ui/HealthBar";
 import { IconInfo } from "@/components/icons";
 
 /** 健康度分數＋「小 i」：滑過或點擊顯示各分項分數、權重與計算公式。 */
@@ -10,18 +10,24 @@ export function HealthScore({
   health,
   size = "md",
   popoverSide = "left",
+  tone = "light",
 }: {
   health: HealthResult;
-  size?: "md" | "lg" | "xl";
+  size?: "md" | "lg" | "xl" | "huge";
   popoverSide?: "left" | "right";
+  /** dark＝放在深色背景上，數字改用較亮的顏色、資訊圖示改淺色 */
+  tone?: "light" | "dark";
 }) {
   const [open, setOpen] = useState(false);
-  const numberSize = size === "xl" ? "text-7xl" : size === "lg" ? "text-5xl" : "text-3xl";
+  const numberSize =
+    size === "huge" ? "text-[11rem]" : size === "xl" ? "text-7xl" : size === "lg" ? "text-5xl" : "text-3xl";
+  const numberColor =
+    tone === "dark" ? healthTextClassDark(health.score) : healthTextClass(health.score);
 
   return (
     <div className="relative inline-flex items-start gap-2">
       <span
-        className={`${numberSize} font-extrabold leading-none tracking-tight tabular-nums ${healthTextClass(health.score)}`}
+        className={`${numberSize} font-extrabold leading-none tracking-tight tabular-nums ${numberColor}`}
       >
         {health.score === null ? "—" : health.score}
       </span>
@@ -33,9 +39,11 @@ export function HealthScore({
         onFocus={() => setOpen(true)}
         onBlur={() => setOpen(false)}
         onClick={() => setOpen((v) => !v)}
-        className="mt-0.5 rounded-full text-slate-400 transition hover:text-brand-600"
+        className={`mt-0.5 rounded-full transition ${
+          tone === "dark" ? "text-blue-200/70 hover:text-white" : "text-slate-400 hover:text-brand-600"
+        }`}
       >
-        <IconInfo className={size === "xl" ? "h-6 w-6" : "h-5 w-5"} />
+        <IconInfo className={size === "huge" ? "h-10 w-10" : size === "xl" ? "h-6 w-6" : "h-5 w-5"} />
       </button>
 
       {open && (
