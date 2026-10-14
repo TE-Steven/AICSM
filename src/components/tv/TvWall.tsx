@@ -140,7 +140,7 @@ export function TvWall({
         <main
           key={company.id}
           className="flex flex-1 flex-col gap-5 px-10 py-5"
-          style={{ animation: "fadeIn 0.4s ease-out" }}
+          style={{ animation: "fadeSoft 0.4s ease-out" }}
         >
           <Slide company={company} generatedAt={generatedAt} />
         </main>

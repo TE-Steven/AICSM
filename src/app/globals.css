@@ -47,6 +47,16 @@ body {
   }
 }
 
+/* 電視牆切換用：從 55% 透明度開始，即使動畫被瀏覽器暫停也不會整頁看不見 */
+@keyframes fadeSoft {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;
