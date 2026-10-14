@@ -139,7 +139,7 @@ export function TvWall({
       ) : (
         <main
           key={company.id}
-          className="flex flex-1 flex-col gap-6 px-10 py-7"
+          className="flex flex-1 flex-col gap-5 px-10 py-5"
           style={{ animation: "fadeIn 0.4s ease-out" }}
         >
           <Slide company={company} generatedAt={generatedAt} />
@@ -188,7 +188,7 @@ function Slide({ company, generatedAt }: { company: CompanyOverview; generatedAt
               客戶健康度總覽・資料更新於 {formatTime(generatedAt)}
             </span>
           </div>
-          <h1 className="mt-2 text-7xl font-extrabold leading-tight tracking-tight text-slate-900">
+          <h1 className="mt-1 text-6xl font-extrabold leading-tight tracking-tight text-slate-900">
             {company.name}
           </h1>
           {company.description && (
@@ -215,10 +215,10 @@ function Slide({ company, generatedAt }: { company: CompanyOverview; generatedAt
       </div>
 
       {/* 三欄：使用數據｜健康度＋構面完成度｜Issue＋未完成項目 */}
-      <div className="grid min-h-0 flex-1 gap-6 xl:grid-cols-3">
+      <div className="grid min-h-0 flex-1 gap-5 xl:grid-cols-3">
         {/* 使用數據 */}
-        <section className={`${CARD} flex flex-col p-6`}>
-          <div className="mb-4 flex items-center justify-between">
+        <section className={`${CARD} flex flex-col p-5`}>
+          <div className="mb-3 flex items-center justify-between">
             <h2 className="text-2xl font-bold text-slate-900">使用數據</h2>
             {company.live.source === "mock" && (
               <span className="rounded bg-slate-100 px-2 py-0.5 text-[11px] font-bold tracking-widest text-slate-500">
@@ -231,7 +231,7 @@ function Slide({ company, generatedAt }: { company: CompanyOverview; generatedAt
               const meta = STAT_ICON[f.key];
               const Icon = meta.icon;
               return (
-                <div key={f.key} className="flex flex-col justify-between rounded-xl bg-slate-50 p-4">
+                <div key={f.key} className="flex flex-col justify-between rounded-xl bg-slate-50 p-3.5">
                   <div className="flex items-center gap-2">
                     <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ${meta.tint}`}>
                       <Icon className="h-4 w-4" />
@@ -256,8 +256,8 @@ function Slide({ company, generatedAt }: { company: CompanyOverview; generatedAt
         </section>
 
         {/* 健康度（深色重點卡）＋各構面完成度 */}
-        <div className="flex min-h-0 flex-col gap-6">
-          <section className="rounded-2xl bg-gradient-to-br from-navy-900 to-navy-700 p-6 text-white shadow-[0_8px_24px_rgba(6,26,66,0.25)]">
+        <div className="flex min-h-0 flex-col gap-5">
+          <section className="rounded-2xl bg-gradient-to-br from-navy-900 to-navy-700 p-5 text-white shadow-[0_8px_24px_rgba(6,26,66,0.25)]">
             <div className="flex items-start justify-between gap-4">
               <div>
                 <p className="mb-2 text-sm font-bold tracking-widest text-blue-200">目前健康度</p>
@@ -273,8 +273,8 @@ function Slide({ company, generatedAt }: { company: CompanyOverview; generatedAt
             <p className="mt-4 text-sm leading-relaxed text-blue-100/80">{company.health.formula}</p>
           </section>
 
-          <section className={`${CARD} flex min-h-0 flex-1 flex-col p-6`}>
-            <div className="mb-4 flex items-center justify-between">
+          <section className={`${CARD} flex min-h-0 flex-1 flex-col p-5`}>
+            <div className="mb-3 flex items-center justify-between">
               <h2 className="text-2xl font-bold text-slate-900">各構面完成度</h2>
               {company.latestAssessment && (
                 <span className="text-sm font-medium text-slate-400">
@@ -308,7 +308,7 @@ function Slide({ company, generatedAt }: { company: CompanyOverview; generatedAt
         </div>
 
         {/* 未結案 Issue ＋ 最新健檢未完成項目 */}
-        <div className="flex min-h-0 flex-col gap-5">
+        <div className="flex min-h-0 flex-col gap-4">
           <section>
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-2xl font-bold text-slate-900">
@@ -327,7 +327,7 @@ function Slide({ company, generatedAt }: { company: CompanyOverview; generatedAt
             ) : (
               <ul className="space-y-3">
                 {company.oldestIssues.map((issue) => (
-                  <li key={issue.id} className={`${CARD} flex items-center justify-between gap-4 border-l-4 border-l-rose-600 px-5 py-4`}>
+                  <li key={issue.id} className={`${CARD} flex items-center justify-between gap-4 border-l-4 border-l-rose-600 px-5 py-3`}>
                     <p className="line-clamp-2 text-lg font-bold text-slate-900">{issue.title}</p>
                     <span className="shrink-0 text-right">
                       <span className="block text-3xl font-extrabold leading-none text-rose-600">
@@ -361,7 +361,7 @@ function Slide({ company, generatedAt }: { company: CompanyOverview; generatedAt
             ) : (
               <ul className="space-y-3">
                 {company.topUnfinished.map((row) => (
-                  <li key={row.id} className={`${CARD} border-l-4 border-l-brand-600 px-5 py-4`}>
+                  <li key={row.id} className={`${CARD} border-l-4 border-l-brand-600 px-5 py-3`}>
                     <div className="flex items-start justify-between gap-3">
                       <p className="line-clamp-2 text-lg font-bold text-slate-900">{row.itemName}</p>
                       <span className="shrink-0 rounded bg-brand-600 px-2 py-0.5 text-xs font-bold tracking-wider text-white">
@@ -415,9 +415,9 @@ function Tile({
 }) {
   const [border, text] = color.split(" ");
   return (
-    <div className={`rounded-2xl border-l-4 bg-slate-100 px-6 py-4 ${border}`}>
+    <div className={`rounded-2xl border-l-4 bg-slate-100 px-6 py-3 ${border}`}>
       <p className="text-sm font-bold tracking-widest text-slate-500">{label}</p>
-      <p className={`mt-1 text-5xl font-extrabold leading-none tracking-tight tabular-nums ${text}`}>{value}</p>
+      <p className={`mt-0.5 text-4xl font-extrabold leading-none tracking-tight tabular-nums ${text}`}>{value}</p>
     </div>
   );
 }
