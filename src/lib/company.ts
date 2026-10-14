@@ -2,6 +2,8 @@ import { prisma } from "@/lib/db";
 import type { CheckItem, CompanyCheckItem } from "@/generated/prisma/client";
 import {
   computeAssessmentStats,
+  groupResults,
+  scoreOf,
   type AssessmentStats,
   type ResultRow,
 } from "@/lib/assessment";
@@ -10,6 +12,11 @@ import { getLiveStats, type LiveStatsResult } from "@/lib/liveStats";
 import { buildTree, flattenLeaves, type LeafSnapshot, type TreeNode } from "@/lib/tree";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** 目前時間（ISO 字串）。 */
+export function currentIsoTime(): string {
+  return new Date().toISOString();
+}
 
 /** 距今幾天（至少 0）。 */
 export function ageInDays(date: Date): number {
@@ -40,6 +47,15 @@ export interface CompanyOverview {
     note: string | null;
     stats: AssessmentStats;
   } | null;
+  /** 歷次評比分數（由舊到新，最多 6 次），用來畫趨勢 */
+  assessmentHistory: { id: string; assessedAt: Date; score: number | null }[];
+  /** 最新評比各構面的完成度 */
+  categoryProgress: {
+    name: string;
+    score: number | null;
+    doneCount: number;
+    totalCount: number;
+  }[];
   /** 最新評比中未完成項目，權重高→低前 3 名 */
   topUnfinished: ResultRow[];
   openIssueCount: number;
@@ -60,11 +76,10 @@ export async function getCompanyOverviews(ids?: string[]): Promise<CompanyOvervi
   if (companies.length === 0) return [];
 
   const companyIds = companies.map((c) => c.id);
-  const [latestAssessments, openIssues] = await Promise.all([
+  const [allAssessments, openIssues] = await Promise.all([
     prisma.assessment.findMany({
       where: { companyId: { in: companyIds } },
       orderBy: { assessedAt: "desc" },
-      distinct: ["companyId"],
       include: { results: { orderBy: { sortOrder: "asc" } } },
     }),
     prisma.issue.findMany({
@@ -77,7 +92,8 @@ export async function getCompanyOverviews(ids?: string[]): Promise<CompanyOvervi
 
   return Promise.all(
     companies.map(async (company) => {
-      const assessment = latestAssessments.find((a) => a.companyId === company.id) ?? null;
+      const companyAssessments = allAssessments.filter((a) => a.companyId === company.id);
+      const assessment = companyAssessments[0] ?? null;
       const stats = assessment ? computeAssessmentStats(assessment.results) : null;
       const issues: OpenIssueSummary[] = openIssues
         .filter((i) => i.companyId === company.id)
@@ -115,6 +131,22 @@ export async function getCompanyOverviews(ids?: string[]): Promise<CompanyOvervi
           assessment && stats
             ? { id: assessment.id, assessedAt: assessment.assessedAt, note: assessment.note, stats }
             : null,
+        assessmentHistory: companyAssessments
+          .slice(0, 6)
+          .reverse()
+          .map((a) => ({
+            id: a.id,
+            assessedAt: a.assessedAt,
+            score: a.results.length > 0 ? scoreOf(a.results) : null,
+          })),
+        categoryProgress: assessment
+          ? groupResults(assessment.results).groups.map((g) => ({
+              name: g.name,
+              score: g.score,
+              doneCount: g.doneCount,
+              totalCount: g.totalCount,
+            }))
+          : [],
         topUnfinished: stats ? stats.unfinished.slice(0, 3) : [],
         openIssueCount: issues.length,
         oldestIssues: issues.slice(0, 3),

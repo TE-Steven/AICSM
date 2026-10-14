@@ -10,7 +10,6 @@ import { Pill } from "@/components/ui/Pill";
 import { StatCard } from "@/components/ui/StatCard";
 import { btn } from "@/components/ui/button";
 import { IconAlertTriangle, IconBuilding, IconPlay } from "@/components/icons";
-import { TV_LAYOUTS } from "@/components/tv/layouts";
 import { seedAicsmAction } from "./actions";
 
 export default async function AdminHomePage({
@@ -136,41 +135,6 @@ export default async function AdminHomePage({
           )}
         </Card>
       </div>
-
-      <Card className="mb-6">
-        <CardHeader
-          title="電視牆版型"
-          description="挑一個版型開啟電視牆（新分頁）；播放中按 L 鍵可即時切換，網址會記住你選的版型，可直接加進電視瀏覽器的書籤。"
-        />
-        <div className="grid gap-3 p-5 md:grid-cols-3">
-          {TV_LAYOUTS.map((l) => (
-            <a
-              key={l.key}
-              href={`/tv?layout=${l.key}`}
-              target="_blank"
-              rel="noreferrer"
-              className="group rounded-xl border border-slate-200 p-4 transition hover:border-brand-500 hover:shadow-md"
-            >
-              <div
-                className={`mb-3 flex h-20 items-center justify-center rounded-lg text-xs font-semibold ${
-                  l.key === "light"
-                    ? "bg-[#eef2f8] text-slate-500"
-                    : l.key === "dark"
-                      ? "bg-navy-950 text-blue-200"
-                      : "bg-gradient-to-br from-navy-800 to-navy-950 text-blue-100"
-                }`}
-              >
-                {l.key === "focus" ? "88" : "▦ ▦ ▦ ▦"}
-              </div>
-              <p className="flex items-center gap-1.5 text-sm font-bold text-slate-900 group-hover:text-brand-600">
-                <IconPlay className="h-3.5 w-3.5" />
-                {l.label}
-              </p>
-              <p className="mt-0.5 text-xs text-slate-500">{l.description}</p>
-            </a>
-          ))}
-        </div>
-      </Card>
 
       <div className="grid gap-5 lg:grid-cols-5">
         <Card className="lg:col-span-3">

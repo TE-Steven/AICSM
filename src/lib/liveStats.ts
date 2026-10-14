@@ -64,16 +64,26 @@ export async function getLiveStats(company: {
   return { stats: mockLiveStats(company.externalId ?? company.id), source: "mock" };
 }
 
+export interface LiveStatField {
+  key: string;
+  label: string;
+  value: string;
+  /** 比率類指標（0–100），可畫進度條 */
+  rate?: number;
+  /** true＝數值越低越好（例如轉接率） */
+  lowerIsBetter?: boolean;
+}
+
 /** 8 項即時數據的顯示欄位（標籤＋格式化後的數值），後台概況與電視牆共用。 */
-export function liveStatFields(stats: LiveStats): { label: string; value: string }[] {
+export function liveStatFields(stats: LiveStats): LiveStatField[] {
   return [
-    { label: "智能服務人次", value: stats.aiServiceCount.toLocaleString("zh-TW") },
-    { label: "智能識別率", value: `${stats.aiRecognitionRate}%` },
-    { label: "智能滿意度", value: `${stats.aiSatisfaction}%` },
-    { label: "智能轉接率", value: `${stats.aiTransferRate}%` },
-    { label: "客服服務人次", value: stats.agentServiceCount.toLocaleString("zh-TW") },
-    { label: "客服滿意度", value: `${stats.agentSatisfaction}%` },
-    { label: "工單數", value: stats.ticketCount.toLocaleString("zh-TW") },
-    { label: "問題分類 TOP1", value: stats.topIssueCategory },
+    { key: "aiServiceCount", label: "智能服務人次", value: stats.aiServiceCount.toLocaleString("zh-TW") },
+    { key: "aiRecognitionRate", label: "智能識別率", value: `${stats.aiRecognitionRate}%`, rate: stats.aiRecognitionRate },
+    { key: "aiSatisfaction", label: "智能滿意度", value: `${stats.aiSatisfaction}%`, rate: stats.aiSatisfaction },
+    { key: "aiTransferRate", label: "智能轉接率", value: `${stats.aiTransferRate}%`, rate: stats.aiTransferRate, lowerIsBetter: true },
+    { key: "agentServiceCount", label: "客服服務人次", value: stats.agentServiceCount.toLocaleString("zh-TW") },
+    { key: "agentSatisfaction", label: "客服滿意度", value: `${stats.agentSatisfaction}%`, rate: stats.agentSatisfaction },
+    { key: "ticketCount", label: "工單數", value: stats.ticketCount.toLocaleString("zh-TW") },
+    { key: "topIssueCategory", label: "問題分類 TOP1", value: stats.topIssueCategory },
   ];
 }
