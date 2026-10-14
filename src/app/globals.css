@@ -76,3 +76,25 @@ body {
     width: 100%;
   }
 }
+
+/* 電視牆字體：中文優先蘋方／微軟正黑／思源黑體，數字用 Inter 系 */
+.font-tv {
+  font-family: "PingFang TC", "Microsoft JhengHei", var(--font-noto-tc), "Noto Sans TC", "Heiti TC", sans-serif;
+}
+
+.font-number {
+  font-family: var(--font-geist-sans), "SF Pro Display", "Inter", "Roboto", "Helvetica Neue", Arial, sans-serif;
+  font-variant-numeric: tabular-nums;
+}
+
+/* KPI 卡片進場（從 40% 透明度開始，動畫被暫停時也不會整張看不見） */
+@keyframes slideUpSoft {
+  from {
+    opacity: 0.4;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

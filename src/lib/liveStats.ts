@@ -14,6 +14,14 @@ export interface LiveStats {
   agentSatisfaction: number; // 客服滿意度（%）
   ticketCount: number; // 工單數
   topIssueCategory: string; // 問題分類 TOP1
+  /**
+   * 較上週變化：人次／工單數為百分比（%），各種比率為百分點（pt）。
+   * 沒有資料的欄位不用填，畫面就不顯示趨勢。
+   */
+  trends?: Partial<Record<
+    "aiServiceCount" | "aiRecognitionRate" | "aiSatisfaction" | "aiTransferRate" | "agentServiceCount" | "agentSatisfaction" | "ticketCount",
+    number
+  >>;
 }
 
 export interface LiveStatsResult {
@@ -54,6 +62,15 @@ function mockLiveStats(seedText: string): LiveStats {
     agentSatisfaction: pick(80, 98, 6),
     ticketCount: pick(20, 260, 7),
     topIssueCategory: TOP_ISSUE_CATEGORIES[seed % TOP_ISSUE_CATEGORIES.length],
+    trends: {
+      aiServiceCount: pick(-8, 14, 11),
+      aiRecognitionRate: pick(-3, 4, 12) + 0.5,
+      aiSatisfaction: pick(-3, 4, 13) + 0.5,
+      aiTransferRate: pick(-4, 3, 14) + 0.5,
+      agentServiceCount: pick(-9, 12, 15),
+      agentSatisfaction: pick(-3, 4, 16) + 0.5,
+      ticketCount: pick(-12, 10, 17),
+    },
   };
 }
 
@@ -72,18 +89,24 @@ export interface LiveStatField {
   rate?: number;
   /** true＝數值越低越好（例如轉接率） */
   lowerIsBetter?: boolean;
+  /** 較上週變化數值與單位（%＝百分比、pt＝百分點） */
+  trend?: { value: number; unit: "%" | "pt" };
+}
+
+function trendOf(value: number | undefined, unit: "%" | "pt"): LiveStatField["trend"] {
+  return value === undefined ? undefined : { value, unit };
 }
 
 /** 8 項即時數據的顯示欄位（標籤＋格式化後的數值），後台概況與電視牆共用。 */
 export function liveStatFields(stats: LiveStats): LiveStatField[] {
   return [
-    { key: "aiServiceCount", label: "智能服務人次", value: stats.aiServiceCount.toLocaleString("zh-TW") },
-    { key: "aiRecognitionRate", label: "智能識別率", value: `${stats.aiRecognitionRate}%`, rate: stats.aiRecognitionRate },
-    { key: "aiSatisfaction", label: "智能滿意度", value: `${stats.aiSatisfaction}%`, rate: stats.aiSatisfaction },
-    { key: "aiTransferRate", label: "智能轉接率", value: `${stats.aiTransferRate}%`, rate: stats.aiTransferRate, lowerIsBetter: true },
-    { key: "agentServiceCount", label: "客服服務人次", value: stats.agentServiceCount.toLocaleString("zh-TW") },
-    { key: "agentSatisfaction", label: "客服滿意度", value: `${stats.agentSatisfaction}%`, rate: stats.agentSatisfaction },
-    { key: "ticketCount", label: "工單數", value: stats.ticketCount.toLocaleString("zh-TW") },
+    { key: "aiServiceCount", label: "智能服務人次", value: stats.aiServiceCount.toLocaleString("zh-TW"), trend: trendOf(stats.trends?.aiServiceCount, "%") },
+    { key: "aiRecognitionRate", label: "智能識別率", value: `${stats.aiRecognitionRate}%`, rate: stats.aiRecognitionRate, trend: trendOf(stats.trends?.aiRecognitionRate, "pt") },
+    { key: "aiSatisfaction", label: "智能滿意度", value: `${stats.aiSatisfaction}%`, rate: stats.aiSatisfaction, trend: trendOf(stats.trends?.aiSatisfaction, "pt") },
+    { key: "aiTransferRate", label: "智能轉接率", value: `${stats.aiTransferRate}%`, rate: stats.aiTransferRate, lowerIsBetter: true, trend: trendOf(stats.trends?.aiTransferRate, "pt") },
+    { key: "agentServiceCount", label: "客服服務人次", value: stats.agentServiceCount.toLocaleString("zh-TW"), trend: trendOf(stats.trends?.agentServiceCount, "%") },
+    { key: "agentSatisfaction", label: "客服滿意度", value: `${stats.agentSatisfaction}%`, rate: stats.agentSatisfaction, trend: trendOf(stats.trends?.agentSatisfaction, "pt") },
+    { key: "ticketCount", label: "工單數", value: stats.ticketCount.toLocaleString("zh-TW"), lowerIsBetter: true, trend: trendOf(stats.trends?.ticketCount, "%") },
     { key: "topIssueCategory", label: "問題分類 TOP1", value: stats.topIssueCategory },
   ];
 }
