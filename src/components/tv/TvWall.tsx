@@ -370,24 +370,24 @@ function KpiCard({ field, index, isMock }: { field: LiveStatField; index: number
 
   return (
     <div
-      className={`${CARD} flex flex-col justify-between p-5`}
+      className={`${CARD} flex flex-col justify-between px-4 py-3.5`}
       style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: `${0.05 + index * 0.05}s` }}
     >
-      <div className="mb-3 flex items-center gap-3">
-        <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
-          <Icon className="h-5 w-5" />
+      <div className="mb-2 flex items-center gap-2.5">
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
+          <Icon className="h-4 w-4" />
         </span>
         <span className="truncate text-sm font-medium text-slate-500">{field.label}</span>
       </div>
       <p
         className={`font-number truncate font-bold leading-tight text-slate-900 ${
-          isText ? "text-2xl" : "text-[40px] min-[1920px]:text-[48px]"
+          isText ? "text-xl" : "text-[34px]"
         }`}
       >
         {field.value}
       </p>
       <p
-        className={`font-number mt-2 inline-flex items-center gap-1 text-xs font-medium ${
+        className={`font-number mt-1 inline-flex items-center gap-1 text-xs font-medium ${
           trend ? (good ? "text-emerald-500" : "text-red-500") : "text-slate-400"
         }`}
       >
