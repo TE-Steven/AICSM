@@ -1,0 +1,173 @@
+// AICSM：客服系統專案管理 + 企業健檢平台
+// 所有資料表一律以 AICSM_ 開頭（與同資料庫內的舊系統資料表並存、互不干擾）。
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// 行業別。isCommon = 內建「通用」行業，其檢核項目所有公司自動繼承。
+model Industry {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  order     Int      @default(0)
+  isCommon  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  checkItems CheckItem[]
+  companies  Company[]
+
+  @@map("AICSM_Industry")
+}
+
+// 行業別檢核項目模板：無限階樹狀，權重寫在每個節點上（葉節點的權重才參與計分）。
+model CheckItem {
+  id            String      @id @default(cuid())
+  industryId    String
+  industry      Industry    @relation(fields: [industryId], references: [id], onDelete: Cascade)
+  parentId      String?
+  parent        CheckItem?  @relation("AicsmCheckItemTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children      CheckItem[] @relation("AicsmCheckItemTree")
+  name          String
+  description   String?
+  weight        Float       @default(1)
+  defaultAction String?
+  order         Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([industryId])
+  @@index([parentId])
+  @@map("AICSM_CheckItem")
+}
+
+// 產品模組（文字智能／語音智能／文字客服…），手動維護。
+model Module {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  description String?
+  order       Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  companies CompanyModule[]
+
+  @@map("AICSM_Module")
+}
+
+// 客戶公司
+model Company {
+  id         String   @id @default(cuid())
+  name       String
+  description String?
+  painPoints String?
+  industryId String
+  industry   Industry @relation(fields: [industryId], references: [id], onDelete: Restrict)
+  // 對應客服系統裡的企業代碼，之後串接即時數據 API 時使用
+  externalId String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  modules     CompanyModule[]
+  checkItems  CompanyCheckItem[]
+  assessments Assessment[]
+  issues      Issue[]
+
+  @@index([industryId])
+  @@map("AICSM_Company")
+}
+
+// 公司購買的模組（多選）
+model CompanyModule {
+  companyId   String
+  company     Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  moduleId    String
+  module      Module   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  purchasedAt DateTime @default(now())
+
+  @@id([companyId, moduleId])
+  @@index([moduleId])
+  @@map("AICSM_CompanyModule")
+}
+
+// 公司專屬檢核項目（在行業別項目之外，該公司自己加的，同樣多層）
+model CompanyCheckItem {
+  id            String             @id @default(cuid())
+  companyId     String
+  company       Company            @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  parentId      String?
+  parent        CompanyCheckItem?  @relation("AicsmCompanyCheckItemTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children      CompanyCheckItem[] @relation("AicsmCompanyCheckItemTree")
+  name          String
+  description   String?
+  weight        Float              @default(1)
+  defaultAction String?
+  order         Int                @default(0)
+  createdAt     DateTime           @default(now())
+  updatedAt     DateTime           @updatedAt
+
+  @@index([companyId])
+  @@index([parentId])
+  @@map("AICSM_CompanyCheckItem")
+}
+
+// 一次評比（可多次），記錄時間與備註
+model Assessment {
+  id         String   @id @default(cuid())
+  companyId  String
+  company    Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  assessedAt DateTime @default(now())
+  note       String?
+  createdAt  DateTime @default(now())
+
+  results AssessmentResult[]
+
+  @@index([companyId])
+  @@map("AICSM_Assessment")
+}
+
+// 評比結果：建立評比當下把項目「拍照」存成快照，之後改／刪模板不會影響歷史評比。
+model AssessmentResult {
+  id            String     @id @default(cuid())
+  assessmentId  String
+  assessment    Assessment @relation(fields: [assessmentId], references: [id], onDelete: Cascade)
+  itemName      String
+  // 構面 › 類別 › 檢核點（以 " › " 串接）
+  pathLabel     String
+  description   String?
+  defaultAction String?
+  weight        Float      @default(1)
+  sortOrder     Int        @default(0)
+  done          Boolean    @default(false)
+  actionNote    String?
+
+  @@index([assessmentId])
+  @@map("AICSM_AssessmentResult")
+}
+
+// 待處理 issue：可手動新增，之後也可由外部 API 匯入（source = "api"）
+model Issue {
+  id          String    @id @default(cuid())
+  companyId   String
+  company     Company   @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  title       String
+  description String?
+  // open | in_progress | resolved
+  status      String    @default("open")
+  // low | medium | high
+  priority    String    @default("medium")
+  // manual | api
+  source      String    @default("manual")
+  externalId  String?
+  occurredAt  DateTime  @default(now())
+  resolvedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  @@unique([source, externalId])
+  @@index([companyId, status])
+  @@map("AICSM_Issue")
+}
