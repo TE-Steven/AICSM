@@ -213,7 +213,7 @@ function Dashboard({
       </header>
 
       {/* KPI Row：8 項使用數據 */}
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4 min-[1536px]:grid-cols-8">
+      <section className="grid grid-cols-2 gap-4 md:grid-cols-4 2xl:grid-cols-8">
         {fields.map((f, i) => (
           <KpiCard key={f.key} field={f} index={i} isMock={company.live.source === "mock"} />
         ))}
@@ -236,14 +236,14 @@ function Dashboard({
           {company.oldestIssues.length === 0 ? (
             <EmptyRow>目前沒有未結案 issue</EmptyRow>
           ) : (
-            <ul className="flex-1 divide-y divide-slate-100 overflow-hidden">
+            <ul className="flex flex-1 flex-col divide-y divide-slate-100 overflow-hidden">
               {company.oldestIssues.map((issue) => {
                 const status = ISSUE_STATUS[issue.status] ?? ISSUE_STATUS.open;
                 const priority = PRIORITY_PILL[issue.priority] ?? PRIORITY_PILL.medium;
                 return (
                   <li
                     key={issue.id}
-                    className="grid grid-cols-[40px_1fr_70px_90px_130px] items-center gap-3 px-3 py-3.5"
+                    className="grid flex-1 grid-cols-[40px_1fr_70px_90px_130px] items-center gap-3 px-3 py-2"
                   >
                     <span
                       className={`mx-auto flex h-7 w-7 items-center justify-center rounded-full text-sm font-bold text-white ${status.dot}`}
@@ -294,11 +294,11 @@ function Dashboard({
           ) : company.topUnfinished.length === 0 ? (
             <EmptyRow>最新評比所有項目皆已完成 🎉</EmptyRow>
           ) : (
-            <ul className="flex-1 divide-y divide-slate-100 overflow-hidden">
+            <ul className="flex flex-1 flex-col divide-y divide-slate-100 overflow-hidden">
               {company.topUnfinished.map((row) => (
                 <li
                   key={row.id}
-                  className="grid grid-cols-[28px_1fr_130px_60px_70px] items-center gap-3 px-3 py-3.5"
+                  className="grid flex-1 grid-cols-[28px_1fr_130px_60px_70px] items-center gap-3 px-3 py-2"
                 >
                   <span className="mx-auto h-[18px] w-[18px] rounded border-2 border-slate-300" />
                   <span className="min-w-0">
@@ -381,7 +381,7 @@ function KpiCard({ field, index, isMock }: { field: LiveStatField; index: number
       </div>
       <p
         className={`font-number truncate font-bold leading-tight text-slate-900 ${
-          isText ? "text-3xl" : "text-[40px] min-[1920px]:text-[48px]"
+          isText ? "text-2xl" : "text-[40px] min-[1920px]:text-[48px]"
         }`}
       >
         {field.value}
