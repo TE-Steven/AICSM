@@ -180,43 +180,23 @@ function Dashboard({
           <h1 className="text-[28px] font-semibold leading-tight">企業診斷儀表板</h1>
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-slate-400">購買模組</span>
-            {company.modules.length === 0 ? (
-              <span className="text-sm text-slate-500">尚未設定</span>
-            ) : (
-              company.modules.map((m) => (
-                <span key={m.id} className="rounded-md bg-white/10 px-2.5 py-1 text-sm font-medium text-slate-100">
-                  {m.name}
-                </span>
-              ))
-            )}
-          </div>
-          <div className="flex items-center gap-3 rounded-lg bg-white/10 px-4 py-1.5">
-            <span className="text-sm text-slate-300">健康度</span>
-            <div className="font-number">
-              <HealthScore health={company.health} size="md" tone="dark" popoverSide="right" />
-            </div>
-            <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${BAND_PILL[company.health.band]}`}>
-              {HEALTH_BAND_LABEL[company.health.band]}
-            </span>
-          </div>
-          <div className="text-right text-slate-400">
-            <p className="font-number text-base font-medium text-slate-300">{formatHeaderDate(generatedAt)}</p>
-            <p className="text-xs">
-              資料更新 {taipei(generatedAt, { hour: "2-digit", minute: "2-digit" })}
-              {paused && "・已暫停"}
-            </p>
-          </div>
+        <div className="text-right text-slate-400">
+          <p className="font-number text-base font-medium text-slate-300">{formatHeaderDate(generatedAt)}</p>
+          <p className="text-xs">
+            資料更新 {taipei(generatedAt, { hour: "2-digit", minute: "2-digit" })}
+            {paused && "・已暫停"}
+          </p>
         </div>
       </header>
 
-      {/* KPI Row：8 項使用數據 */}
-      <section className="grid grid-cols-2 gap-4 md:grid-cols-4 2xl:grid-cols-8">
-        {fields.map((f, i) => (
-          <KpiCard key={f.key} field={f} index={i} isMock={company.live.source === "mock"} />
-        ))}
+      {/* KPI Row：左半 8 項使用數據（4×2 精簡小卡）＋右半健康度與購買模組 */}
+      <section className="grid gap-5 xl:grid-cols-2">
+        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+          {fields.map((f, i) => (
+            <KpiMini key={f.key} field={f} index={i} />
+          ))}
+        </div>
+        <HealthCard company={company} />
       </section>
 
       {/* Middle Row：Issue ＋ 待辦（未完成健檢項目） */}
@@ -359,7 +339,7 @@ function Dashboard({
   );
 }
 
-function KpiCard({ field, index, isMock }: { field: LiveStatField; index: number; isMock: boolean }) {
+function KpiMini({ field, index }: { field: LiveStatField; index: number }) {
   const meta = KPI_ICON[field.key];
   const Icon = meta.icon;
   const isText = field.key === "topIssueCategory";
@@ -370,40 +350,67 @@ function KpiCard({ field, index, isMock }: { field: LiveStatField; index: number
 
   return (
     <div
-      className={`${CARD} flex flex-col justify-between px-4 py-3.5`}
+      className={`${CARD} flex items-center gap-2.5 px-3 py-2`}
       style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: `${0.05 + index * 0.05}s` }}
+      title={trend ? `${field.label}・較上週 ${up ? "+" : ""}${trend.value}${trend.unit}` : field.label}
     >
-      <div className="mb-2 flex items-center gap-2.5">
-        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
-          <Icon className="h-4 w-4" />
-        </span>
-        <span className="truncate text-sm font-medium text-slate-500">{field.label}</span>
+      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
+        <Icon className="h-4 w-4" />
+      </span>
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-xs font-medium text-slate-500">{field.label}</p>
+        <div className="flex items-baseline gap-1.5">
+          <span
+            className={`font-number truncate font-bold leading-tight text-slate-900 ${isText ? "text-base" : "text-[22px]"}`}
+          >
+            {field.value}
+          </span>
+          {trend && (
+            <span
+              className={`font-number shrink-0 text-[11px] font-medium ${good ? "text-emerald-500" : "text-red-500"}`}
+            >
+              {up ? "▲" : "▼"}
+              {Math.abs(trend.value)}
+              {trend.unit}
+            </span>
+          )}
+        </div>
       </div>
-      <p
-        className={`font-number truncate font-bold leading-tight text-slate-900 ${
-          isText ? "text-xl" : "text-[34px]"
-        }`}
-      >
-        {field.value}
-      </p>
-      <p
-        className={`font-number mt-1 inline-flex items-center gap-1 text-xs font-medium ${
-          trend ? (good ? "text-emerald-500" : "text-red-500") : "text-slate-400"
-        }`}
-      >
-        {trend ? (
-          <>
-            <span>{up ? "▲" : "▼"}</span>
-            較上週 {up ? "+" : ""}
-            {Number.isInteger(trend.value) ? trend.value : trend.value.toFixed(1)}
-            {trend.unit}
-          </>
-        ) : isMock ? (
-          "本週最常被詢問"
-        ) : (
-          "本週最多"
-        )}
-      </p>
+    </div>
+  );
+}
+
+function HealthCard({ company }: { company: CompanyOverview }) {
+  return (
+    <div className={`${CARD} flex flex-wrap items-center justify-between gap-x-8 gap-y-2 px-6 py-3`}>
+      <div className="flex items-center gap-5">
+        <div>
+          <p className="text-xs font-medium text-slate-500">目前健康度</p>
+          <div className="font-number">
+            <HealthScore health={company.health} size="lg" />
+          </div>
+        </div>
+        <div>
+          <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${BAND_PILL[company.health.band]}`}>
+            {HEALTH_BAND_LABEL[company.health.band]}
+          </span>
+          <p className="mt-1.5 max-w-[360px] text-xs leading-relaxed text-slate-500">{company.health.formula}</p>
+        </div>
+      </div>
+      <div className="max-w-[340px]">
+        <p className="mb-1.5 text-xs font-medium text-slate-500">購買模組</p>
+        <div className="flex flex-wrap gap-1.5">
+          {company.modules.length === 0 ? (
+            <span className="text-sm text-slate-400">尚未設定</span>
+          ) : (
+            company.modules.map((m) => (
+              <span key={m.id} className="rounded-md bg-sky-100 px-2.5 py-1 text-sm font-medium text-sky-700">
+                {m.name}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
     </div>
   );
 }
