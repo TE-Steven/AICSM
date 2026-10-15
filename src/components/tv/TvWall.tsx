@@ -342,8 +342,10 @@ function HealthCard({ company }: { company: CompanyOverview }) {
     <div className={`${CARD} flex flex-col gap-3 px-6 py-4`}>
       <div className="flex items-center gap-5">
         <div className="min-w-0 flex-1">
-          <h2 className="break-words text-[32px] font-bold leading-tight text-slate-900">{company.name}</h2>
-          <span className="mt-2 inline-block rounded-md bg-sky-100 px-2.5 py-1 text-base font-semibold text-sky-700">
+          <h2 className="break-words text-[42px] font-extrabold leading-tight tracking-tight text-slate-900">
+            {company.name}
+          </h2>
+          <span className="mt-2 inline-block rounded-md bg-sky-100 px-3 py-1 text-lg font-semibold text-sky-700">
             {company.industry.name}
           </span>
         </div>
