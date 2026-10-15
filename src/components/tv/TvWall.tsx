@@ -380,7 +380,6 @@ function StatsBlock({ rows }: { rows: LiveStatField[][] }) {
   return (
     <div
       className={`${CARD} flex flex-col divide-y divide-slate-200 px-2 py-1`}
-      style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: "0.1s" }}
     >
       {rows.map((row, rowIndex) => (
         <div
@@ -430,18 +429,15 @@ function StatItem({ field }: { field: LiveStatField }) {
   );
 }
 
-/** 問題分類 TOP1：完全獨立的深色區塊，分「智能客服」與「人工客服」兩種。 */
+/** 問題分類 TOP1：完全獨立的區塊，分「智能客服」與「人工客服」兩種。 */
 function TopIssueBlock({ ai, agent }: { ai?: LiveStatField; agent?: LiveStatField }) {
   return (
-    <div
-      className="flex flex-col rounded-[10px] bg-gradient-to-br from-slate-800 to-slate-900 text-white shadow-[0_4px_6px_-1px_rgba(15,23,42,0.18)]"
-      style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: "0.2s" }}
-    >
-      <p className="flex items-center gap-2 px-5 pb-1 pt-4 text-xl font-semibold text-white">
-        <IconTag className="h-5 w-5 text-sky-300" />
+    <div className={`${CARD} flex flex-col`}>
+      <p className="flex items-center gap-2 px-5 pb-1 pt-4 text-xl font-semibold text-slate-700">
+        <IconTag className="h-5 w-5 text-sky-500" />
         問題分類 TOP1
       </p>
-      <div className="flex flex-1 flex-col divide-y divide-white/15">
+      <div className="flex flex-1 flex-col divide-y divide-slate-200">
         <TopIssueRow label="智能客服" value={ai?.value} />
         <TopIssueRow label="人工客服" value={agent?.value} />
       </div>
@@ -452,9 +448,9 @@ function TopIssueBlock({ ai, agent }: { ai?: LiveStatField; agent?: LiveStatFiel
 function TopIssueRow({ label, value }: { label: string; value?: string }) {
   return (
     <div className="flex flex-1 flex-col justify-center px-5 py-2">
-      <span className="text-lg font-semibold text-sky-300">{label}</span>
-      <span className="truncate text-[32px] font-bold leading-tight text-white">{value ?? "—"}</span>
-      <span className="text-base text-slate-300">本週最常被詢問</span>
+      <span className="text-lg font-semibold text-slate-700">{label}</span>
+      <span className="truncate text-[32px] font-bold leading-tight text-slate-900">{value ?? "—"}</span>
+      <span className="text-base text-slate-500">本週最常被詢問</span>
     </div>
   );
 }

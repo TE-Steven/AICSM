@@ -86,15 +86,3 @@ body {
   font-family: var(--font-geist-sans), "SF Pro Display", "Inter", "Roboto", "Helvetica Neue", Arial, sans-serif;
   font-variant-numeric: tabular-nums;
 }
-
-/* KPI 卡片進場（從 40% 透明度開始，動畫被暫停時也不會整張看不見） */
-@keyframes slideUpSoft {
-  from {
-    opacity: 0.4;
-    transform: translateY(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
