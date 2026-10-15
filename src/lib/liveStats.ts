@@ -1,9 +1,10 @@
 /**
- * 智能客服／真人客服的即時數據（8 項）。
+ * 智能客服／真人客服的使用數據（7 項數字＋智能／人工問題分類 TOP1）。
  *
- * TODO: 目前為示意資料。之後請改成呼叫實際的客服系統 API：
- *   依 company.externalId（客服系統的企業代碼）取得該企業的即時數據，
- *   取代 getLiveStats() 裡的 mock 產生邏輯；介面與呼叫端都不用動。
+ * 資料來源優先順序：
+ *   1. 每日數據（AICSM_CompanyDailyStat）：後台逐天手動填寫，或外部系統每天透過 API 寫入。
+ *      每個欄位取「最新一天」的值，並與 7 天前同一天比較，算出「較上週」趨勢。
+ *   2. 示意資料（mock）：公司完全沒有某欄位的每日數據時暫時顯示，並標示為示意。
  */
 export interface LiveStats {
   aiServiceCount: number; // 智能服務人次
@@ -25,8 +26,8 @@ export interface LiveStats {
   >>;
 }
 
-/** 後台可以手動輸入的欄位（7 項數字＋智能／人工問題分類 TOP1）。 */
-export const MANUAL_STAT_KEYS = [
+/** 每日數據的欄位（7 項數字＋智能／人工問題分類 TOP1）。 */
+export const STAT_KEYS = [
   "aiServiceCount",
   "aiRecognitionRate",
   "aiSatisfaction",
@@ -38,33 +39,56 @@ export const MANUAL_STAT_KEYS = [
   "agentTopIssueCategory",
 ] as const;
 
-export type ManualStatKey = (typeof MANUAL_STAT_KEYS)[number];
-export type ManualStats = Partial<Record<ManualStatKey, number | string>>;
+export type StatKey = (typeof STAT_KEYS)[number];
+type NumericStatKey = Exclude<StatKey, "aiTopIssueCategory" | "agentTopIssueCategory">;
 
-const TEXT_KEYS: ManualStatKey[] = ["aiTopIssueCategory", "agentTopIssueCategory"];
+/** 人次／工單數（整數）；趨勢以百分比計算。 */
+export const COUNT_STAT_KEYS: StatKey[] = ["aiServiceCount", "agentServiceCount", "ticketCount"];
+/** 各種比率（0–100）；趨勢以百分點計算。 */
+export const RATE_STAT_KEYS: StatKey[] = [
+  "aiRecognitionRate",
+  "aiSatisfaction",
+  "aiTransferRate",
+  "agentSatisfaction",
+];
+export const TEXT_STAT_KEYS: StatKey[] = ["aiTopIssueCategory", "agentTopIssueCategory"];
 
-/** 把資料庫存的 JSON 轉成乾淨的 ManualStats（欄位型別不對的直接略過）。 */
-export function parseManualStats(value: unknown): ManualStats {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
-  const raw = value as Record<string, unknown>;
-  const out: ManualStats = {};
-  for (const key of MANUAL_STAT_KEYS) {
-    const v = raw[key];
-    if (TEXT_KEYS.includes(key)) {
-      if (typeof v === "string" && v.trim()) out[key] = v.trim();
-    } else if (typeof v === "number" && Number.isFinite(v)) {
-      out[key] = v;
-    }
-  }
-  return out;
+export const STAT_LABELS: Record<StatKey, string> = {
+  aiServiceCount: "智能服務人次",
+  aiRecognitionRate: "智能識別率",
+  aiSatisfaction: "智能滿意度",
+  aiTransferRate: "智能轉接率",
+  agentServiceCount: "客服服務人次",
+  agentSatisfaction: "客服滿意度",
+  ticketCount: "工單數",
+  aiTopIssueCategory: "智能客服・問題分類 TOP1",
+  agentTopIssueCategory: "人工客服・問題分類 TOP1",
+};
+
+/** 一天的數據（欄位可以只填一部分，沒填＝null）。date 為 YYYY-MM-DD 或 Date。 */
+export type DailyStatRow = { date: Date | string } & {
+  [K in StatKey]?: (K extends NumericStatKey ? number : string) | null;
+};
+
+/** 日期（Date 或字串）轉成 YYYY-MM-DD。 */
+export function dateKey(value: Date | string): string {
+  return typeof value === "string" ? value.slice(0, 10) : value.toISOString().slice(0, 10);
+}
+
+/** YYYY-MM-DD 加減天數。 */
+export function addDays(day: string, delta: number): string {
+  const [y, m, d] = day.split("-").map(Number);
+  return new Date(Date.UTC(y, m - 1, d + delta)).toISOString().slice(0, 10);
 }
 
 export interface LiveStatsResult {
   stats: LiveStats;
-  /** 資料來源：mock＝示意資料；api＝真實 API */
-  source: "mock" | "api";
-  /** 以手動輸入覆蓋的欄位（這些欄位不顯示「較上週」趨勢） */
-  manualFields: ManualStatKey[];
+  /** 資料來源：mock＝完全是示意資料；data＝至少有一個欄位來自每日數據 */
+  source: "mock" | "data";
+  /** 來自每日數據的欄位（其餘欄位暫時是示意資料） */
+  recordedFields: StatKey[];
+  /** 這些數據最新一筆的日期（YYYY-MM-DD）；沒有每日數據時為 null */
+  statsDate: string | null;
 }
 
 const TOP_ISSUE_CATEGORIES = [
@@ -121,30 +145,55 @@ function mockLiveStats(seedText: string): LiveStats {
   };
 }
 
-export async function getLiveStats(company: {
-  id: string;
-  externalId: string | null;
-  manualStats?: unknown;
-}): Promise<LiveStatsResult> {
-  const base = mockLiveStats(company.externalId ?? company.id);
-  const manual = parseManualStats(company.manualStats);
+/** 示意資料（尚未有每日數據時的預設值）。 */
+export function getSampleStats(company: { id: string; externalId: string | null }): LiveStats {
+  return mockLiveStats(company.externalId ?? company.id);
+}
 
+/**
+ * 組出公司目前的使用數據。rows 為該公司的每日數據，需依日期由新到舊排序。
+ * 每個欄位取「最新一天有填的值」，趨勢＝與該日 7 天前同一天比較。
+ */
+export function getLiveStats(
+  company: { id: string; externalId: string | null },
+  rows: DailyStatRow[]
+): LiveStatsResult {
+  const base = mockLiveStats(company.externalId ?? company.id);
   const stats: LiveStats = { ...base, trends: { ...base.trends } };
-  const manualFields: ManualStatKey[] = [];
-  for (const key of MANUAL_STAT_KEYS) {
-    const v = manual[key];
-    if (v === undefined) continue;
+  const recordedFields: StatKey[] = [];
+  let statsDate: string | null = null;
+
+  for (const key of STAT_KEYS) {
+    const latest = rows.find((r) => r[key] !== null && r[key] !== undefined);
+    if (!latest) continue;
+
+    recordedFields.push(key);
+    const latestDay = dateKey(latest.date);
+    if (!statsDate || latestDay > statsDate) statsDate = latestDay;
+
     if (key === "aiTopIssueCategory" || key === "agentTopIssueCategory") {
-      if (typeof v === "string") stats[key] = v;
-    } else if (typeof v === "number") {
-      stats[key] = v;
-      // 手動輸入的數字沒有「較上週」可比較，不顯示系統產生的趨勢
-      delete stats.trends?.[key];
+      stats[key] = latest[key] as string;
+      continue;
     }
-    manualFields.push(key);
+
+    const current = latest[key] as number;
+    stats[key] = current;
+    // 系統產生的示意趨勢不再適用，改由每日數據自己算
+    delete stats.trends?.[key];
+
+    const weekAgoDay = addDays(latestDay, -7);
+    const weekAgo = rows.find((r) => dateKey(r.date) === weekAgoDay && r[key] !== null && r[key] !== undefined);
+    if (weekAgo && stats.trends) {
+      const previous = weekAgo[key] as number;
+      if (COUNT_STAT_KEYS.includes(key)) {
+        if (previous > 0) stats.trends[key] = Math.round(((current - previous) / previous) * 1000) / 10;
+      } else {
+        stats.trends[key] = Math.round((current - previous) * 10) / 10;
+      }
+    }
   }
 
-  return { stats, source: "mock", manualFields };
+  return { stats, source: recordedFields.length > 0 ? "data" : "mock", recordedFields, statsDate };
 }
 
 export interface LiveStatField {

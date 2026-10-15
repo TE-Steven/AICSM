@@ -2,7 +2,8 @@ import { prisma } from "@/lib/db";
 import type { CheckItem, CompanyCheckItem } from "@/generated/prisma/client";
 import { computeAssessmentStats, type AssessmentStats, type ResultRow } from "@/lib/assessment";
 import { computeHealth, type HealthResult } from "@/lib/health";
-import { getLiveStats, type LiveStatsResult } from "@/lib/liveStats";
+import { addDays, getLiveStats, type DailyStatRow, type LiveStatsResult } from "@/lib/liveStats";
+import { todayInTaipei } from "@/lib/dailyStats";
 import { buildTree, flattenLeaves, type LeafSnapshot, type TreeNode } from "@/lib/tree";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -61,7 +62,9 @@ export async function getCompanyOverviews(ids?: string[]): Promise<CompanyOvervi
   if (companies.length === 0) return [];
 
   const companyIds = companies.map((c) => c.id);
-  const [allAssessments, openIssues] = await Promise.all([
+  // 取近 60 天的每日數據，每個欄位取最新一天有填的值
+  const sinceDay = addDays(todayInTaipei(), -60);
+  const [allAssessments, openIssues, dailyRows] = await Promise.all([
     prisma.assessment.findMany({
       where: { companyId: { in: companyIds } },
       orderBy: { assessedAt: "desc" },
@@ -70,6 +73,10 @@ export async function getCompanyOverviews(ids?: string[]): Promise<CompanyOvervi
     prisma.issue.findMany({
       where: { companyId: { in: companyIds }, status: { not: "resolved" } },
       orderBy: { occurredAt: "asc" },
+    }),
+    prisma.companyDailyStat.findMany({
+      where: { companyId: { in: companyIds }, date: { gte: new Date(`${sinceDay}T00:00:00.000Z`) } },
+      orderBy: { date: "desc" },
     }),
   ]);
 
@@ -90,11 +97,10 @@ export async function getCompanyOverviews(ids?: string[]): Promise<CompanyOvervi
           occurredAt: i.occurredAt,
           ageDays: Math.max(0, Math.floor((now - i.occurredAt.getTime()) / DAY_MS)),
         }));
-      const live = await getLiveStats({
-        id: company.id,
-        externalId: company.externalId,
-        manualStats: company.manualStats,
-      });
+      const live = getLiveStats(
+        { id: company.id, externalId: company.externalId },
+        dailyRows.filter((r) => r.companyId === company.id) as DailyStatRow[]
+      );
 
       const health = computeHealth({
         usage: {

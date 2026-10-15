@@ -69,8 +69,6 @@ model Company {
   industry   Industry @relation(fields: [industryId], references: [id], onDelete: Restrict)
   // 對應客服系統裡的企業代碼，之後串接即時數據 API 時使用
   externalId String?
-  // 手動輸入的使用數據（7 項數字＋智能／人工問題分類 TOP1）；沒填的欄位沿用系統資料（示意或 API）
-  manualStats Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
@@ -78,6 +76,7 @@ model Company {
   checkItems  CompanyCheckItem[]
   assessments Assessment[]
   issues      Issue[]
+  dailyStats  CompanyDailyStat[]
 
   @@index([industryId])
   @@map("AICSM_Company")
@@ -172,4 +171,30 @@ model Issue {
   @@unique([source, externalId])
   @@index([companyId, status])
   @@map("AICSM_Issue")
+}
+
+// 每日使用數據：每家公司每天一筆，可由後台手動填寫，也可由外部系統每天透過 API 寫入。
+// 電視牆顯示每個欄位「最新一天」的數值，並與 7 天前同一天比較（較上週）。
+model CompanyDailyStat {
+  id                    String   @id @default(cuid())
+  companyId             String
+  company               Company  @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  date                  DateTime @db.Date
+  aiServiceCount        Int?
+  aiRecognitionRate     Float?
+  aiSatisfaction        Float?
+  aiTransferRate        Float?
+  agentServiceCount     Int?
+  agentSatisfaction     Float?
+  ticketCount           Int?
+  aiTopIssueCategory    String?
+  agentTopIssueCategory String?
+  // manual | api
+  source                String   @default("manual")
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  @@unique([companyId, date])
+  @@index([companyId, date])
+  @@map("AICSM_CompanyDailyStat")
 }

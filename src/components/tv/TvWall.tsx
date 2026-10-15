@@ -211,28 +211,22 @@ function Dashboard({
     : 0;
 
   return (
-    <div className="grid h-full grid-rows-[auto_340px_minmax(0,1fr)] gap-4 p-5">
+    <div className="grid h-full grid-rows-[auto_auto_minmax(0,1fr)] gap-4 p-5">
       {/* Header */}
       <header className="flex items-center justify-between gap-8 rounded-xl bg-slate-800 px-6 py-3.5 text-white">
-        <div className="flex items-center gap-4">
-          <span className="text-2xl font-bold tracking-[0.02em]">{company.name}</span>
-          <span className="rounded-md bg-sky-500/20 px-2.5 py-1 text-sm font-semibold text-sky-300">
-            {company.industry.name}
-          </span>
-          <span className="h-6 w-px bg-white/20" />
-          <h1 className="text-[28px] font-semibold leading-tight">企業診斷儀表板</h1>
-        </div>
+        <h1 className="text-[32px] font-semibold leading-tight">企業診斷儀表板</h1>
         <div className="text-right text-slate-400">
           <p className="font-number text-base font-medium text-slate-300">{formatHeaderDate(generatedAt)}</p>
           <p className="text-sm">
-            資料更新 {taipei(generatedAt, { hour: "2-digit", minute: "2-digit" })}
+            資料更新 {taipei(generatedAt, { hour: "2-digit", minute: "2-digit" })}・
+            {company.live.statsDate ? `數據日期 ${company.live.statsDate.slice(5).replace("-", "/")}` : "使用數據為示意資料"}
             {rotate && paused && "・已暫停"}
           </p>
         </div>
       </header>
 
       {/* 上半部：健康度｜7 個數值（同一個大區塊）｜問題分類 TOP1（獨立區塊，分智能／人工） */}
-      <section className="grid grid-cols-[minmax(0,3.2fr)_minmax(0,5fr)_minmax(0,2.4fr)] gap-4">
+      <section className="grid min-h-[300px] grid-cols-[minmax(0,3.2fr)_minmax(0,5fr)_minmax(0,2.4fr)] gap-4">
         <HealthCard company={company} />
         <StatsBlock rows={[kpis.slice(0, 4), kpis.slice(4)]} />
         <TopIssueBlock ai={topAi} agent={topAgent} />
@@ -346,19 +340,27 @@ function Dashboard({
 function HealthCard({ company }: { company: CompanyOverview }) {
   return (
     <div className={`${CARD} flex flex-col gap-3 px-6 py-4`}>
-      <div>
-        <p className="mb-1 text-xl font-semibold text-slate-700">目前健康度</p>
-        <div className="flex items-center gap-3">
+      <div className="flex items-center gap-5">
+        <div className="min-w-0 flex-1">
+          <h2 className="break-words text-[32px] font-bold leading-tight text-slate-900">{company.name}</h2>
+          <span className="mt-2 inline-block rounded-md bg-sky-100 px-2.5 py-1 text-base font-semibold text-sky-700">
+            {company.industry.name}
+          </span>
+        </div>
+        <div className="shrink-0 border-l border-slate-200 pl-5">
+          <div className="mb-0.5 flex items-center gap-2">
+            <span className="text-lg font-semibold text-slate-700">目前健康度</span>
+            <span className={`rounded-md px-2 py-0.5 text-sm font-semibold ${BAND_PILL[company.health.band]}`}>
+              {HEALTH_BAND_LABEL[company.health.band]}
+            </span>
+          </div>
           <div className="font-number">
             <HealthScore health={company.health} size="hero" />
           </div>
-          <span className={`rounded-md px-2.5 py-1 text-sm font-semibold ${BAND_PILL[company.health.band]}`}>
-            {HEALTH_BAND_LABEL[company.health.band]}
-          </span>
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 border-t border-slate-200 pt-3">
+      <div className="min-h-0 border-t border-slate-200 pt-3">
         <p className="mb-1 text-base font-semibold text-slate-700">痛點說明</p>
         {company.painPoints ? (
           <p className="line-clamp-4 text-[15px] leading-relaxed text-slate-600">{company.painPoints}</p>
@@ -367,7 +369,7 @@ function HealthCard({ company }: { company: CompanyOverview }) {
         )}
       </div>
 
-      <div>
+      <div className="mt-auto">
         <p className="mb-1.5 text-base font-semibold text-slate-700">購買模組</p>
         <div className="flex flex-wrap gap-1.5">
           {company.modules.length === 0 ? (

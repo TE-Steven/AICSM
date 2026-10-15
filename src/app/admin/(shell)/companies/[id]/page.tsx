@@ -85,13 +85,11 @@ export default async function CompanyOverviewPage({
         <CardHeader
           title="使用數據"
           description={
-            overview.live.manualFields.length >= 9
-              ? "全部為手動輸入"
-              : overview.live.manualFields.length > 0
-                ? `已手動輸入 ${overview.live.manualFields.length} 項，其餘為示意資料`
-                : overview.live.source === "mock"
-                  ? "目前為示意資料，可到「使用數據」分頁手動輸入，或之後串接客服系統 API"
-                  : "來自客服系統 API"
+            overview.live.recordedFields.length === 0
+              ? "目前為示意資料，可到「使用數據」分頁逐天填寫，或由外部系統每天透過 API 寫入"
+              : `最新數據日期 ${overview.live.statsDate}，較上週＝與 7 天前同一天比較${
+                  overview.live.recordedFields.length < 9 ? "（尚未填的欄位暫時是示意資料）" : ""
+                }`
           }
         />
         <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-3">

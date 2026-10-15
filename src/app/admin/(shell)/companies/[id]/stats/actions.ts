@@ -2,26 +2,19 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { Prisma } from "@/generated/prisma/client";
 import { prisma } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { MANUAL_STAT_KEYS, type ManualStatKey, type ManualStats } from "@/lib/liveStats";
+import {
+  GRID_DAYS,
+  addDays,
+  dayToDate,
+  isValidDay,
+  parseStatValue,
+  upsertDailyStat,
+  type StatValues,
+} from "@/lib/dailyStats";
+import { STAT_KEYS, STAT_LABELS } from "@/lib/liveStats";
 import { withSuccess } from "@/lib/toast";
-
-const LABELS: Record<ManualStatKey, string> = {
-  aiServiceCount: "智能服務人次",
-  aiRecognitionRate: "智能識別率",
-  aiSatisfaction: "智能滿意度",
-  aiTransferRate: "智能轉接率",
-  agentServiceCount: "客服服務人次",
-  agentSatisfaction: "客服滿意度",
-  ticketCount: "工單數",
-  aiTopIssueCategory: "智能問題分類 TOP1",
-  agentTopIssueCategory: "人工問題分類 TOP1",
-};
-
-const RATE_KEYS: ManualStatKey[] = ["aiRecognitionRate", "aiSatisfaction", "aiTransferRate", "agentSatisfaction"];
-const TEXT_KEYS: ManualStatKey[] = ["aiTopIssueCategory", "agentTopIssueCategory"];
 
 function refresh(companyId: string) {
   revalidatePath(`/admin/companies/${companyId}`);
@@ -30,43 +23,43 @@ function refresh(companyId: string) {
   revalidatePath("/tv");
 }
 
-/** 儲存手動輸入的使用數據：欄位留白＝沿用系統資料（示意或 API），不是 0。 */
-export async function updateManualStatsAction(formData: FormData): Promise<void> {
+/**
+ * 儲存一整頁（14 天）的每日數據。
+ * - 整列都留白：刪除該天的紀錄。
+ * - 有填任何欄位：該天寫入／更新，留白的欄位視為當天沒有資料（電視牆會往前找最新一天有填的值）。
+ */
+export async function saveDailyStatsAction(formData: FormData): Promise<void> {
   await requireAdmin();
 
   const companyId = String(formData.get("companyId") ?? "");
-  const back = `/admin/companies/${companyId}/stats`;
+  const end = String(formData.get("end") ?? "");
+  if (!isValidDay(end)) redirect(`/admin/companies/${companyId}/stats`);
+  const back = `/admin/companies/${companyId}/stats?end=${end}`;
 
-  if (formData.get("clearAll") === "1") {
-    await prisma.company.update({ where: { id: companyId }, data: { manualStats: Prisma.DbNull } });
-    refresh(companyId);
-    redirect(withSuccess(back, "已清除手動輸入，改回使用系統資料"));
+  const parsed: { day: string; values: StatValues; blank: boolean }[] = [];
+  for (let i = 0; i < GRID_DAYS; i++) {
+    const day = addDays(end, -i);
+    const values: StatValues = {};
+    let blank = true;
+    for (const key of STAT_KEYS) {
+      const result = parseStatValue(key, formData.get(`${day}__${key}`));
+      if (!result.ok) {
+        redirect(`${back}&error=${encodeURIComponent(`${day} ${STAT_LABELS[key]}`)}`);
+      }
+      values[key] = result.value;
+      if (result.value !== null) blank = false;
+    }
+    parsed.push({ day, values, blank });
   }
 
-  const out: ManualStats = {};
-  for (const key of MANUAL_STAT_KEYS) {
-    const raw = String(formData.get(key) ?? "").trim();
-    if (!raw) continue;
-
-    if (TEXT_KEYS.includes(key)) {
-      out[key] = raw.slice(0, 40);
-      continue;
+  for (const row of parsed) {
+    if (row.blank) {
+      await prisma.companyDailyStat.deleteMany({ where: { companyId, date: dayToDate(row.day) } });
+    } else {
+      await upsertDailyStat(companyId, row.day, row.values, "manual");
     }
-
-    const value = Number(raw.replaceAll(",", ""));
-    const isRate = RATE_KEYS.includes(key);
-    const valid = Number.isFinite(value) && value >= 0 && (isRate ? value <= 100 : Number.isInteger(value) && value <= 100_000_000);
-    if (!valid) {
-      redirect(`${back}?error=${encodeURIComponent(LABELS[key])}`);
-    }
-    out[key] = isRate ? Math.round(value * 10) / 10 : value;
   }
-
-  await prisma.company.update({
-    where: { id: companyId },
-    data: { manualStats: Object.keys(out).length > 0 ? (out as Prisma.InputJsonObject) : Prisma.DbNull },
-  });
 
   refresh(companyId);
-  redirect(withSuccess(back, "已儲存使用數據"));
+  redirect(withSuccess(back, "已儲存每日使用數據"));
 }
