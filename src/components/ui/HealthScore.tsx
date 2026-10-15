@@ -23,7 +23,7 @@ export function HealthScore({
     size === "huge"
       ? "text-[11rem]"
       : size === "hero"
-        ? "text-[7.5rem]"
+        ? "text-[6rem]"
         : size === "xl"
           ? "text-7xl"
           : size === "lg"

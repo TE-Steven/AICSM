@@ -69,6 +69,8 @@ model Company {
   industry   Industry @relation(fields: [industryId], references: [id], onDelete: Restrict)
   // 對應客服系統裡的企業代碼，之後串接即時數據 API 時使用
   externalId String?
+  // 手動輸入的使用數據（7 項數字＋智能／人工問題分類 TOP1）；沒填的欄位沿用系統資料（示意或 API）
+  manualStats Json?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

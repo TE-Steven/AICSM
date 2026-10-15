@@ -85,9 +85,13 @@ export default async function CompanyOverviewPage({
         <CardHeader
           title="使用數據"
           description={
-            overview.live.source === "mock"
-              ? "目前為示意資料，串接客服系統 API 後會自動換成真實數據"
-              : "來自客服系統 API"
+            overview.live.manualFields.length >= 9
+              ? "全部為手動輸入"
+              : overview.live.manualFields.length > 0
+                ? `已手動輸入 ${overview.live.manualFields.length} 項，其餘為示意資料`
+                : overview.live.source === "mock"
+                  ? "目前為示意資料，可到「使用數據」分頁手動輸入，或之後串接客服系統 API"
+                  : "來自客服系統 API"
           }
         />
         <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-3">

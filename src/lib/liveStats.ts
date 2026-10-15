@@ -25,10 +25,46 @@ export interface LiveStats {
   >>;
 }
 
+/** 後台可以手動輸入的欄位（7 項數字＋智能／人工問題分類 TOP1）。 */
+export const MANUAL_STAT_KEYS = [
+  "aiServiceCount",
+  "aiRecognitionRate",
+  "aiSatisfaction",
+  "aiTransferRate",
+  "agentServiceCount",
+  "agentSatisfaction",
+  "ticketCount",
+  "aiTopIssueCategory",
+  "agentTopIssueCategory",
+] as const;
+
+export type ManualStatKey = (typeof MANUAL_STAT_KEYS)[number];
+export type ManualStats = Partial<Record<ManualStatKey, number | string>>;
+
+const TEXT_KEYS: ManualStatKey[] = ["aiTopIssueCategory", "agentTopIssueCategory"];
+
+/** 把資料庫存的 JSON 轉成乾淨的 ManualStats（欄位型別不對的直接略過）。 */
+export function parseManualStats(value: unknown): ManualStats {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+  const raw = value as Record<string, unknown>;
+  const out: ManualStats = {};
+  for (const key of MANUAL_STAT_KEYS) {
+    const v = raw[key];
+    if (TEXT_KEYS.includes(key)) {
+      if (typeof v === "string" && v.trim()) out[key] = v.trim();
+    } else if (typeof v === "number" && Number.isFinite(v)) {
+      out[key] = v;
+    }
+  }
+  return out;
+}
+
 export interface LiveStatsResult {
   stats: LiveStats;
   /** 資料來源：mock＝示意資料；api＝真實 API */
   source: "mock" | "api";
+  /** 以手動輸入覆蓋的欄位（這些欄位不顯示「較上週」趨勢） */
+  manualFields: ManualStatKey[];
 }
 
 const TOP_ISSUE_CATEGORIES = [
@@ -88,8 +124,27 @@ function mockLiveStats(seedText: string): LiveStats {
 export async function getLiveStats(company: {
   id: string;
   externalId: string | null;
+  manualStats?: unknown;
 }): Promise<LiveStatsResult> {
-  return { stats: mockLiveStats(company.externalId ?? company.id), source: "mock" };
+  const base = mockLiveStats(company.externalId ?? company.id);
+  const manual = parseManualStats(company.manualStats);
+
+  const stats: LiveStats = { ...base, trends: { ...base.trends } };
+  const manualFields: ManualStatKey[] = [];
+  for (const key of MANUAL_STAT_KEYS) {
+    const v = manual[key];
+    if (v === undefined) continue;
+    if (key === "aiTopIssueCategory" || key === "agentTopIssueCategory") {
+      if (typeof v === "string") stats[key] = v;
+    } else if (typeof v === "number") {
+      stats[key] = v;
+      // 手動輸入的數字沒有「較上週」可比較，不顯示系統產生的趨勢
+      delete stats.trends?.[key];
+    }
+    manualFields.push(key);
+  }
+
+  return { stats, source: "mock", manualFields };
 }
 
 export interface LiveStatField {

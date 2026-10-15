@@ -90,7 +90,11 @@ export async function getCompanyOverviews(ids?: string[]): Promise<CompanyOvervi
           occurredAt: i.occurredAt,
           ageDays: Math.max(0, Math.floor((now - i.occurredAt.getTime()) / DAY_MS)),
         }));
-      const live = await getLiveStats(company);
+      const live = await getLiveStats({
+        id: company.id,
+        externalId: company.externalId,
+        manualStats: company.manualStats,
+      });
 
       const health = computeHealth({
         usage: {

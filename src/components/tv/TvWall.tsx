@@ -211,7 +211,7 @@ function Dashboard({
     : 0;
 
   return (
-    <div className="grid h-full grid-rows-[auto_300px_minmax(0,1fr)] gap-4 p-5">
+    <div className="grid h-full grid-rows-[auto_340px_minmax(0,1fr)] gap-4 p-5">
       {/* Header */}
       <header className="flex items-center justify-between gap-8 rounded-xl bg-slate-800 px-6 py-3.5 text-white">
         <div className="flex items-center gap-4">
@@ -232,7 +232,7 @@ function Dashboard({
       </header>
 
       {/* 上半部：健康度｜7 個數值（同一個大區塊）｜問題分類 TOP1（獨立區塊，分智能／人工） */}
-      <section className="grid grid-cols-[minmax(0,2.2fr)_minmax(0,5fr)_minmax(0,2.4fr)] gap-4">
+      <section className="grid grid-cols-[minmax(0,3.2fr)_minmax(0,5fr)_minmax(0,2.4fr)] gap-4">
         <HealthCard company={company} />
         <StatsBlock rows={[kpis.slice(0, 4), kpis.slice(4)]} />
         <TopIssueBlock ai={topAi} agent={topAgent} />
@@ -345,18 +345,28 @@ function Dashboard({
 
 function HealthCard({ company }: { company: CompanyOverview }) {
   return (
-    <div className={`${CARD} flex flex-col justify-between px-6 py-4`}>
+    <div className={`${CARD} flex flex-col gap-3 px-6 py-4`}>
       <div>
         <p className="mb-1 text-xl font-semibold text-slate-700">目前健康度</p>
-        <div className="flex items-end gap-3">
+        <div className="flex items-center gap-3">
           <div className="font-number">
             <HealthScore health={company.health} size="hero" />
           </div>
-          <span className={`mb-3 rounded-md px-2.5 py-1 text-sm font-semibold ${BAND_PILL[company.health.band]}`}>
+          <span className={`rounded-md px-2.5 py-1 text-sm font-semibold ${BAND_PILL[company.health.band]}`}>
             {HEALTH_BAND_LABEL[company.health.band]}
           </span>
         </div>
       </div>
+
+      <div className="min-h-0 flex-1 border-t border-slate-200 pt-3">
+        <p className="mb-1 text-base font-semibold text-slate-700">痛點說明</p>
+        {company.painPoints ? (
+          <p className="line-clamp-4 text-[15px] leading-relaxed text-slate-600">{company.painPoints}</p>
+        ) : (
+          <p className="text-sm text-slate-400">尚未填寫（後台「公司管理 → 基本資料」可編輯）</p>
+        )}
+      </div>
+
       <div>
         <p className="mb-1.5 text-base font-semibold text-slate-700">購買模組</p>
         <div className="flex flex-wrap gap-1.5">
@@ -404,10 +414,10 @@ function StatItem({ field }: { field: LiveStatField }) {
   const good = trend ? (field.lowerIsBetter ? !up : up) : false;
 
   return (
-    <div className="flex min-w-0 flex-col justify-center gap-1 px-4 py-2">
+    <div className="flex min-w-0 flex-col justify-center gap-1 px-3 py-2">
       <div className="flex items-center gap-2">
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
-          <Icon className="h-4 w-4" />
+        <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
+          <Icon className="h-3.5 w-3.5" />
         </span>
         <span className="truncate text-lg font-semibold text-slate-700">{field.label}</span>
       </div>

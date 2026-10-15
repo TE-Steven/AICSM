@@ -9,6 +9,7 @@ export function CompanyTabs({ companyId }: { companyId: string }) {
   const tabs = [
     { href: base, label: "概況", exact: true },
     { href: `${base}/edit`, label: "基本資料", exact: false },
+    { href: `${base}/stats`, label: "使用數據", exact: false },
     { href: `${base}/issues`, label: "Issue 管理", exact: false },
     { href: `${base}/checklist`, label: "企業健檢檢核管理", exact: false },
     { href: `${base}/purchases`, label: "購買功能管理", exact: false },
