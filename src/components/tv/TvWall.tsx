@@ -19,6 +19,10 @@ import {
   IconUsers,
 } from "@/components/icons";
 
+/** 電視牆固定以 1920×1080 的畫布設計，再依實際螢幕整張等比縮放，任何解析度都不會跑版。 */
+const STAGE_W = 1920;
+const STAGE_H = 1080;
+
 /** 每家公司在電視牆停留的時間（毫秒）。 */
 const SLIDE_MS = 15000;
 /** 自動重新抓取最新資料的間隔（毫秒）。 */
@@ -89,6 +93,18 @@ export function TvWall({
     return () => clearInterval(timer);
   }, [paused, companies.length, index]);
 
+  const [view, setView] = useState<{ w: number; h: number } | null>(null);
+
+  useEffect(() => {
+    const update = () => setView({ w: window.innerWidth, h: window.innerHeight });
+    const first = setTimeout(update, 0);
+    window.addEventListener("resize", update);
+    return () => {
+      clearTimeout(first);
+      window.removeEventListener("resize", update);
+    };
+  }, []);
+
   useEffect(() => {
     const timer = setInterval(() => router.refresh(), REFRESH_MS);
     return () => clearInterval(timer);
@@ -110,45 +126,62 @@ export function TvWall({
 
   const company = companies[index < companies.length ? index : 0];
 
+  const scale = view ? Math.min(view.w / STAGE_W, view.h / STAGE_H) : 1;
+  const offsetX = view ? (view.w - STAGE_W * scale) / 2 : 0;
+  const offsetY = view ? (view.h - STAGE_H * scale) / 2 : 0;
+
   return (
-    <div className="font-tv relative min-h-screen bg-slate-100 text-slate-900 xl:h-screen xl:overflow-hidden">
-      {company && (
-        <div className="absolute inset-x-0 top-0 z-10 h-1 bg-slate-200">
-          <div
-            key={company.id}
-            className="h-full bg-sky-500"
-            style={{
-              animation: `slideProgress ${SLIDE_MS}ms linear forwards`,
-              animationPlayState: paused ? "paused" : "running",
-            }}
-          />
-        </div>
-      )}
-
-      {!company ? (
-        <div className="flex min-h-screen items-center justify-center">
-          <p className="text-lg text-slate-400">尚無公司資料，請先到後台新增公司。</p>
-        </div>
-      ) : (
-        <Dashboard key={company.id} company={company} generatedAt={generatedAt} paused={paused} />
-      )}
-
-      {companies.length > 1 && (
-        <div className="absolute inset-x-0 bottom-1.5 z-10 flex flex-wrap items-center justify-center gap-2">
-          {companies.map((c, i) => (
-            <button
-              key={c.id}
-              type="button"
-              onClick={() => setIndex(i)}
-              title={c.name}
-              aria-label={`切換到 ${c.name}`}
-              className={`h-1.5 rounded-full transition-all ${
-                i === index ? "w-8 bg-sky-500" : "w-1.5 bg-slate-300 hover:bg-slate-400"
-              }`}
+    <div
+      className="font-tv fixed inset-0 overflow-hidden bg-slate-100 text-slate-900"
+      style={{ visibility: view ? "visible" : "hidden" }}
+    >
+      <div
+        className="absolute left-0 top-0"
+        style={{
+          width: STAGE_W,
+          height: STAGE_H,
+          transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
+          transformOrigin: "top left",
+        }}
+      >
+        {company && (
+          <div className="absolute inset-x-0 top-0 z-10 h-1 bg-slate-200">
+            <div
+              key={company.id}
+              className="h-full bg-sky-500"
+              style={{
+                animation: `slideProgress ${SLIDE_MS}ms linear forwards`,
+                animationPlayState: paused ? "paused" : "running",
+              }}
             />
-          ))}
-        </div>
-      )}
+          </div>
+        )}
+
+        {!company ? (
+          <div className="flex h-full items-center justify-center">
+            <p className="text-lg text-slate-400">尚無公司資料，請先到後台新增公司。</p>
+          </div>
+        ) : (
+          <Dashboard key={company.id} company={company} generatedAt={generatedAt} paused={paused} />
+        )}
+
+        {companies.length > 1 && (
+          <div className="absolute inset-x-0 bottom-1.5 z-10 flex items-center justify-center gap-2">
+            {companies.map((c, i) => (
+              <button
+                key={c.id}
+                type="button"
+                onClick={() => setIndex(i)}
+                title={c.name}
+                aria-label={`切換到 ${c.name}`}
+                className={`h-1.5 rounded-full transition-all ${
+                  i === index ? "w-8 bg-sky-500" : "w-1.5 bg-slate-300 hover:bg-slate-400"
+                }`}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
@@ -168,15 +201,15 @@ function Dashboard({
     : 0;
 
   return (
-    <div className="grid gap-5 p-6 min-[1920px]:p-8 xl:h-full xl:grid-rows-[auto_auto_minmax(0,1fr)_220px]">
+    <div className="grid h-full grid-rows-[auto_auto_minmax(0,1fr)_200px] gap-5 p-6">
       {/* Header */}
-      <header className="flex flex-wrap items-center justify-between gap-x-8 gap-y-3 rounded-xl bg-slate-800 px-6 py-4 text-white">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+      <header className="flex items-center justify-between gap-8 rounded-xl bg-slate-800 px-6 py-3.5 text-white">
+        <div className="flex items-center gap-4">
           <span className="text-2xl font-bold tracking-[0.02em]">{company.name}</span>
           <span className="rounded-md bg-sky-500/20 px-2.5 py-1 text-sm font-semibold text-sky-300">
             {company.industry.name}
           </span>
-          <span className="hidden h-6 w-px bg-white/20 md:block" />
+          <span className="h-6 w-px bg-white/20" />
           <h1 className="text-[28px] font-semibold leading-tight">企業診斷儀表板</h1>
         </div>
 
@@ -189,9 +222,9 @@ function Dashboard({
         </div>
       </header>
 
-      {/* KPI Row：左半 8 項使用數據（4×2 精簡小卡）＋右半健康度與購買模組 */}
-      <section className="grid gap-5 xl:grid-cols-2">
-        <div className="grid grid-cols-2 gap-2.5 md:grid-cols-4">
+      {/* KPI Row：左半 8 項使用數據（4×2）＋右半健康度與購買模組 */}
+      <section className="grid grid-cols-2 gap-5">
+        <div className="grid grid-cols-4 gap-2.5">
           {fields.map((f, i) => (
             <KpiMini key={f.key} field={f} index={i} />
           ))}
@@ -200,7 +233,7 @@ function Dashboard({
       </section>
 
       {/* Middle Row：Issue ＋ 待辦（未完成健檢項目） */}
-      <section className="grid min-h-0 gap-5 lg:grid-cols-2">
+      <section className="grid min-h-0 grid-cols-2 gap-5">
         <Panel
           icon={<IconAlertTriangle className="h-5 w-5 text-red-500" />}
           title="未結案 Issue"
@@ -302,7 +335,7 @@ function Dashboard({
       </section>
 
       {/* Chart Row */}
-      <section className="grid gap-5 lg:grid-cols-2">
+      <section className="grid grid-cols-2 gap-5">
         <ChartCard
           title="各構面完成度"
           legend={[
@@ -350,61 +383,62 @@ function KpiMini({ field, index }: { field: LiveStatField; index: number }) {
 
   return (
     <div
-      className={`${CARD} flex items-center gap-2.5 px-3 py-2`}
+      className={`${CARD} flex flex-col gap-2 px-3.5 py-3`}
       style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: `${0.05 + index * 0.05}s` }}
-      title={trend ? `${field.label}・較上週 ${up ? "+" : ""}${trend.value}${trend.unit}` : field.label}
     >
-      <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
-        <Icon className="h-4 w-4" />
-      </span>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-xs font-medium text-slate-500">{field.label}</p>
-        <div className="flex items-baseline gap-1.5">
-          <span
-            className={`font-number truncate font-bold leading-tight text-slate-900 ${isText ? "text-base" : "text-[22px]"}`}
-          >
-            {field.value}
-          </span>
-          {trend && (
-            <span
-              className={`font-number shrink-0 text-[11px] font-medium ${good ? "text-emerald-500" : "text-red-500"}`}
-            >
-              {up ? "▲" : "▼"}
-              {Math.abs(trend.value)}
-              {trend.unit}
-            </span>
-          )}
-        </div>
+      <div className="flex items-center gap-2">
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
+          <Icon className="h-4 w-4" />
+        </span>
+        <span className="truncate text-sm font-medium text-slate-500">{field.label}</span>
       </div>
+      <p className={`font-number truncate font-bold leading-none text-slate-900 ${isText ? "text-2xl" : "text-[36px]"}`}>
+        {field.value}
+      </p>
+      <p
+        className={`font-number text-xs font-medium ${
+          trend ? (good ? "text-emerald-500" : "text-red-500") : "text-slate-400"
+        }`}
+      >
+        {trend ? (
+          <>
+            {up ? "▲" : "▼"} 較上週 {up ? "+" : ""}
+            {Number.isInteger(trend.value) ? trend.value : trend.value.toFixed(1)}
+            {trend.unit}
+          </>
+        ) : (
+          "本週最常被詢問"
+        )}
+      </p>
     </div>
   );
 }
 
 function HealthCard({ company }: { company: CompanyOverview }) {
   return (
-    <div className={`${CARD} flex flex-wrap items-center justify-between gap-x-8 gap-y-2 px-6 py-3`}>
-      <div className="flex items-center gap-5">
+    <div className={`${CARD} flex items-center justify-between gap-8 px-8 py-4`}>
+      <div className="flex items-center gap-6">
         <div>
-          <p className="text-xs font-medium text-slate-500">目前健康度</p>
+          <p className="mb-1 text-sm font-medium text-slate-500">目前健康度</p>
           <div className="font-number">
-            <HealthScore health={company.health} size="lg" />
+            <HealthScore health={company.health} size="xl" />
           </div>
         </div>
         <div>
-          <span className={`rounded-md px-2 py-0.5 text-xs font-semibold ${BAND_PILL[company.health.band]}`}>
+          <span className={`rounded-md px-2.5 py-1 text-sm font-semibold ${BAND_PILL[company.health.band]}`}>
             {HEALTH_BAND_LABEL[company.health.band]}
           </span>
-          <p className="mt-1.5 max-w-[360px] text-xs leading-relaxed text-slate-500">{company.health.formula}</p>
+          <p className="mt-2 max-w-[300px] text-xs leading-relaxed text-slate-500">{company.health.formula}</p>
         </div>
       </div>
-      <div className="max-w-[340px]">
-        <p className="mb-1.5 text-xs font-medium text-slate-500">購買模組</p>
-        <div className="flex flex-wrap gap-1.5">
+      <div className="max-w-[300px] shrink-0">
+        <p className="mb-2 text-sm font-medium text-slate-500">購買模組</p>
+        <div className="flex flex-wrap gap-2">
           {company.modules.length === 0 ? (
             <span className="text-sm text-slate-400">尚未設定</span>
           ) : (
             company.modules.map((m) => (
-              <span key={m.id} className="rounded-md bg-sky-100 px-2.5 py-1 text-sm font-medium text-sky-700">
+              <span key={m.id} className="rounded-md bg-sky-100 px-3 py-1 text-sm font-medium text-sky-700">
                 {m.name}
               </span>
             ))
@@ -462,7 +496,7 @@ function ChartCard({
   children: ReactNode;
 }) {
   return (
-    <div className={`${CARD} flex min-h-[220px] flex-col p-4`}>
+    <div className={`${CARD} flex h-full flex-col p-4`}>
       <div className="mb-2 flex items-center justify-between">
         <h3 className="text-lg font-semibold text-slate-700">{title}</h3>
         <div className="flex gap-4 text-xs text-slate-500">
