@@ -1,13 +1,20 @@
 import type { ReactNode } from "react";
+import { prisma } from "@/lib/db";
 import { logoutAction } from "../login/actions";
 import { Logo } from "@/components/Logo";
 import { AdminNav } from "@/components/AdminNav";
+import { TvLaunchButton } from "@/components/TvLaunchButton";
 import { IconLogout, IconPlay } from "@/components/icons";
 
 // 後台資料即時性重要，且避免部署建置時需要連線資料庫，一律動態渲染。
 export const dynamic = "force-dynamic";
 
-export default function AdminShellLayout({ children }: { children: ReactNode }) {
+export default async function AdminShellLayout({ children }: { children: ReactNode }) {
+  const companies = await prisma.company.findMany({
+    select: { id: true, name: true },
+    orderBy: { name: "asc" },
+  });
+
   return (
     <div className="flex min-h-screen">
       <aside className="hidden w-64 shrink-0 flex-col bg-navy-900 lg:flex">
@@ -17,15 +24,13 @@ export default function AdminShellLayout({ children }: { children: ReactNode }) 
         <AdminNav />
 
         <div className="mt-auto space-y-2 p-3">
-          <a
-            href="/tv"
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-3 text-sm font-bold text-white shadow-lg shadow-brand-600/30 transition hover:bg-brand-500"
+          <TvLaunchButton
+            companies={companies}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-brand-600 px-3 py-3 text-sm font-bold text-white shadow-lg shadow-brand-600/30 transition hover:bg-brand-500"
           >
             <IconPlay className="h-4 w-4" />
             播放電視牆
-          </a>
+          </TvLaunchButton>
           <form action={logoutAction}>
             <button
               type="submit"
@@ -43,15 +48,13 @@ export default function AdminShellLayout({ children }: { children: ReactNode }) 
           <div className="flex items-center justify-between px-4 pb-3">
             <Logo />
             <div className="flex items-center gap-2">
-              <a
-                href="/tv"
-                target="_blank"
-                rel="noreferrer"
+              <TvLaunchButton
+                companies={companies}
                 className="inline-flex items-center gap-1 rounded-lg bg-brand-600 px-3 py-1.5 text-xs font-bold text-white"
               >
                 <IconPlay className="h-3.5 w-3.5" />
                 電視牆
-              </a>
+              </TvLaunchButton>
               <form action={logoutAction}>
                 <button type="submit" className="px-2 py-1.5 text-xs font-medium text-blue-100/80">
                   登出

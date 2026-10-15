@@ -1,12 +1,6 @@
 import { prisma } from "@/lib/db";
 import type { CheckItem, CompanyCheckItem } from "@/generated/prisma/client";
-import {
-  computeAssessmentStats,
-  groupResults,
-  scoreOf,
-  type AssessmentStats,
-  type ResultRow,
-} from "@/lib/assessment";
+import { computeAssessmentStats, type AssessmentStats, type ResultRow } from "@/lib/assessment";
 import { computeHealth, type HealthResult } from "@/lib/health";
 import { getLiveStats, type LiveStatsResult } from "@/lib/liveStats";
 import { buildTree, flattenLeaves, type LeafSnapshot, type TreeNode } from "@/lib/tree";
@@ -47,15 +41,6 @@ export interface CompanyOverview {
     note: string | null;
     stats: AssessmentStats;
   } | null;
-  /** 歷次評比分數（由舊到新，最多 6 次），用來畫趨勢 */
-  assessmentHistory: { id: string; assessedAt: Date; score: number | null }[];
-  /** 最新評比各構面的完成度 */
-  categoryProgress: {
-    name: string;
-    score: number | null;
-    doneCount: number;
-    totalCount: number;
-  }[];
   /** 最新評比中未完成項目，權重高→低前 3 名 */
   topUnfinished: ResultRow[];
   openIssueCount: number;
@@ -131,22 +116,6 @@ export async function getCompanyOverviews(ids?: string[]): Promise<CompanyOvervi
           assessment && stats
             ? { id: assessment.id, assessedAt: assessment.assessedAt, note: assessment.note, stats }
             : null,
-        assessmentHistory: companyAssessments
-          .slice(0, 6)
-          .reverse()
-          .map((a) => ({
-            id: a.id,
-            assessedAt: a.assessedAt,
-            score: a.results.length > 0 ? scoreOf(a.results) : null,
-          })),
-        categoryProgress: assessment
-          ? groupResults(assessment.results).groups.map((g) => ({
-              name: g.name,
-              score: g.score,
-              doneCount: g.doneCount,
-              totalCount: g.totalCount,
-            }))
-          : [],
         topUnfinished: stats ? stats.unfinished.slice(0, 3) : [],
         openIssueCount: issues.length,
         oldestIssues: issues.slice(0, 3),

@@ -7,7 +7,6 @@ import type { CompanyOverview } from "@/lib/company";
 import { HEALTH_BAND_LABEL, type HealthBand } from "@/lib/health";
 import { liveStatFields, type LiveStatField } from "@/lib/liveStats";
 import { PATH_SEPARATOR } from "@/lib/tree";
-import { CategoryBarChart, ScoreTrendChart } from "@/components/tv/TvCharts";
 import { HealthScore } from "@/components/ui/HealthScore";
 import {
   IconAlertTriangle,
@@ -27,8 +26,6 @@ import {
 const MIN_W = 1500;
 const MIN_H = 880;
 
-/** 每家公司在電視牆停留的時間（毫秒）。 */
-const SLIDE_MS = 15000;
 /** 自動重新抓取最新資料的間隔（毫秒）。 */
 const REFRESH_MS = 5 * 60 * 1000;
 
@@ -51,7 +48,6 @@ const KPI_ICON: Record<string, { icon: typeof IconUsers; tint: string }> = {
   agentServiceCount: { icon: IconUsers, tint: "bg-sky-100 text-sky-500" },
   agentSatisfaction: { icon: IconCheckCircle, tint: "bg-teal-100 text-teal-500" },
   ticketCount: { icon: IconClipboard, tint: "bg-violet-100 text-violet-500" },
-  topIssueCategory: { icon: IconTag, tint: "bg-red-100 text-red-500" },
 };
 
 const PRIORITY_PILL: Record<string, { label: string; cls: string }> = {
@@ -83,19 +79,25 @@ function formatHeaderDate(iso: string): string {
 export function TvWall({
   companies,
   generatedAt,
+  slideSeconds,
 }: {
   companies: CompanyOverview[];
   generatedAt: string;
+  /** 每家公司停留幾秒 */
+  slideSeconds: number;
 }) {
   const router = useRouter();
+  const slideMs = slideSeconds * 1000;
+  /** 只有 1 家（或沒有）公司時不輪播 */
+  const rotate = companies.length > 1;
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
-    if (paused || companies.length <= 1) return;
-    const timer = setInterval(() => setIndex((i) => (i + 1) % companies.length), SLIDE_MS);
+    if (paused || !rotate) return;
+    const timer = setInterval(() => setIndex((i) => (i + 1) % companies.length), slideMs);
     return () => clearInterval(timer);
-  }, [paused, companies.length, index]);
+  }, [paused, rotate, companies.length, slideMs, index]);
 
   const [view, setView] = useState<{ w: number; h: number } | null>(null);
 
@@ -116,7 +118,7 @@ export function TvWall({
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (companies.length === 0) return;
+      if (!rotate) return;
       if (e.key === "ArrowRight") setIndex((i) => (i + 1) % companies.length);
       if (e.key === "ArrowLeft") setIndex((i) => (i - 1 + companies.length) % companies.length);
       if (e.key === " ") {
@@ -126,7 +128,7 @@ export function TvWall({
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [companies.length]);
+  }, [rotate, companies.length]);
 
   const company = companies[index < companies.length ? index : 0];
 
@@ -147,13 +149,13 @@ export function TvWall({
           zoom: scale,
         }}
       >
-        {company && (
+        {company && rotate && (
           <div className="absolute inset-x-0 top-0 z-10 h-1 bg-slate-200">
             <div
-              key={company.id}
+              key={`${company.id}-${index}`}
               className="h-full bg-sky-500"
               style={{
-                animation: `slideProgress ${SLIDE_MS}ms linear forwards`,
+                animation: `slideProgress ${slideMs}ms linear forwards`,
                 animationPlayState: paused ? "paused" : "running",
               }}
             />
@@ -162,13 +164,13 @@ export function TvWall({
 
         {!company ? (
           <div className="flex h-full items-center justify-center">
-            <p className="text-lg text-slate-400">尚無公司資料，請先到後台新增公司。</p>
+            <p className="text-lg text-slate-400">沒有可顯示的公司，請回後台重新選擇播放的公司。</p>
           </div>
         ) : (
-          <Dashboard key={company.id} company={company} generatedAt={generatedAt} paused={paused} />
+          <Dashboard key={company.id} company={company} generatedAt={generatedAt} paused={paused} rotate={rotate} />
         )}
 
-        {companies.length > 1 && (
+        {rotate && (
           <div className="absolute inset-x-0 bottom-1.5 z-10 flex items-center justify-center gap-2">
             {companies.map((c, i) => (
               <button
@@ -193,18 +195,22 @@ function Dashboard({
   company,
   generatedAt,
   paused,
+  rotate,
 }: {
   company: CompanyOverview;
   generatedAt: string;
   paused: boolean;
+  rotate: boolean;
 }) {
   const fields = liveStatFields(company.live.stats);
+  const topIssue = fields.find((f) => f.key === "topIssueCategory");
+  const kpis = fields.filter((f) => f.key !== "topIssueCategory");
   const unfinishedTotal = company.latestAssessment
     ? company.latestAssessment.stats.totalCount - company.latestAssessment.stats.doneCount
     : 0;
 
   return (
-    <div className="grid h-full grid-rows-[auto_auto_minmax(0,1fr)_170px] gap-4 p-5">
+    <div className="grid h-full grid-rows-[auto_300px_minmax(0,1fr)] gap-4 p-5">
       {/* Header */}
       <header className="flex items-center justify-between gap-8 rounded-xl bg-slate-800 px-6 py-3.5 text-white">
         <div className="flex items-center gap-4">
@@ -215,28 +221,28 @@ function Dashboard({
           <span className="h-6 w-px bg-white/20" />
           <h1 className="text-[28px] font-semibold leading-tight">企業診斷儀表板</h1>
         </div>
-
         <div className="text-right text-slate-400">
           <p className="font-number text-base font-medium text-slate-300">{formatHeaderDate(generatedAt)}</p>
           <p className="text-sm">
             資料更新 {taipei(generatedAt, { hour: "2-digit", minute: "2-digit" })}
-            {paused && "・已暫停"}
+            {rotate && paused && "・已暫停"}
           </p>
         </div>
       </header>
 
-      {/* KPI Row：左半 8 項使用數據（4×2）＋右半健康度與購買模組 */}
-      <section className="grid grid-cols-2 gap-4">
-        <div className="grid grid-cols-4 gap-2">
-          {fields.map((f, i) => (
-            <KpiMini key={f.key} field={f} index={i} />
-          ))}
-        </div>
+      {/* 左：健康度（含購買模組）｜右：7 項數據＋問題分類 TOP1 獨立區塊 */}
+      <section className="grid grid-cols-[minmax(0,2fr)_minmax(0,5fr)] gap-4">
         <HealthCard company={company} />
+        <div className="grid grid-cols-4 grid-rows-2 gap-2">
+          {kpis.map((f, i) => (
+            <KpiTile key={f.key} field={f} index={i} />
+          ))}
+          {topIssue && <TopIssueBlock field={topIssue} />}
+        </div>
       </section>
 
       {/* Middle Row：Issue ＋ 待辦（未完成健檢項目） */}
-      <section className="grid min-h-0 grid-cols-2 gap-5">
+      <section className="grid min-h-0 grid-cols-2 gap-4">
         <Panel
           icon={<IconAlertTriangle className="h-5 w-5 text-red-500" />}
           title="未結案 Issue"
@@ -280,7 +286,7 @@ function Dashboard({
                           "-"
                         )}
                       </span>
-                      <span className="font-number text-sm font-bold text-red-500">已 {issue.ageDays} 天</span>
+                      <span className="font-number text-base font-bold text-red-500">已 {issue.ageDays} 天</span>
                     </span>
                   </li>
                 );
@@ -336,49 +342,45 @@ function Dashboard({
           )}
         </Panel>
       </section>
-
-      {/* Chart Row */}
-      <section className="grid grid-cols-2 gap-5">
-        <ChartCard
-          title="各構面完成度"
-          legend={[
-            { color: "bg-sky-500", label: "已完成" },
-            { color: "bg-amber-500", label: "未完成" },
-          ]}
-        >
-          {company.categoryProgress.length === 0 ? (
-            <ChartEmpty>尚無評比紀錄</ChartEmpty>
-          ) : (
-            <CategoryBarChart data={company.categoryProgress} />
-          )}
-        </ChartCard>
-        <ChartCard
-          title="健康度趨勢（歷次評比）"
-          legend={[
-            { color: "bg-sky-500", label: "評比分數" },
-            { color: "bg-emerald-500", label: "健康門檻 80%" },
-          ]}
-        >
-          {company.assessmentHistory.length === 0 ? (
-            <ChartEmpty>尚無評比紀錄</ChartEmpty>
-          ) : (
-            <ScoreTrendChart
-              data={company.assessmentHistory.map((h) => ({
-                label: taipei(h.assessedAt, { month: "2-digit", day: "2-digit" }).replace("/", "."),
-                score: h.score,
-              }))}
-            />
-          )}
-        </ChartCard>
-      </section>
     </div>
   );
 }
 
-function KpiMini({ field, index }: { field: LiveStatField; index: number }) {
+function HealthCard({ company }: { company: CompanyOverview }) {
+  return (
+    <div className={`${CARD} flex flex-col justify-between px-6 py-4`}>
+      <div>
+        <p className="mb-1 text-base font-medium text-slate-500">目前健康度</p>
+        <div className="flex items-end gap-3">
+          <div className="font-number">
+            <HealthScore health={company.health} size="hero" />
+          </div>
+          <span className={`mb-3 rounded-md px-2.5 py-1 text-sm font-semibold ${BAND_PILL[company.health.band]}`}>
+            {HEALTH_BAND_LABEL[company.health.band]}
+          </span>
+        </div>
+      </div>
+      <div>
+        <p className="mb-1.5 text-sm font-medium text-slate-500">購買模組</p>
+        <div className="flex flex-wrap gap-1.5">
+          {company.modules.length === 0 ? (
+            <span className="text-sm text-slate-400">尚未設定</span>
+          ) : (
+            company.modules.map((m) => (
+              <span key={m.id} className="rounded-md bg-sky-100 px-2.5 py-1 text-sm font-medium text-sky-700">
+                {m.name}
+              </span>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function KpiTile({ field, index }: { field: LiveStatField; index: number }) {
   const meta = KPI_ICON[field.key];
   const Icon = meta.icon;
-  const isText = field.key === "topIssueCategory";
   const trend = field.trend;
   const up = trend ? trend.value >= 0 : false;
   // 方向 ≠ 好壞：轉接率、工單數下降是好事
@@ -386,68 +388,48 @@ function KpiMini({ field, index }: { field: LiveStatField; index: number }) {
 
   return (
     <div
-      className={`${CARD} flex flex-col gap-1.5 px-3.5 py-2.5`}
+      className={`${CARD} flex flex-col justify-between px-4 py-3`}
       style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: `${0.05 + index * 0.05}s` }}
     >
-      <div className="flex items-center gap-2">
-        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
-          <Icon className="h-4 w-4" />
+      <div className="flex items-center gap-2.5">
+        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
+          <Icon className="h-[18px] w-[18px]" />
         </span>
-        <span className="truncate text-base font-medium text-slate-500">{field.label}</span>
+        <span className="truncate text-lg font-medium text-slate-500">{field.label}</span>
       </div>
-      <p className={`font-number truncate font-bold leading-none text-slate-900 ${isText ? "text-[26px]" : "text-[40px]"}`}>
-        {field.value}
-      </p>
+      <p className="font-number truncate text-[50px] font-bold leading-none text-slate-900">{field.value}</p>
       <p
-        className={`font-number text-sm font-medium ${
+        className={`font-number text-base font-medium ${
           trend ? (good ? "text-emerald-500" : "text-red-500") : "text-slate-400"
         }`}
       >
-        {trend ? (
+        {trend && (
           <>
             {up ? "▲" : "▼"} 較上週 {up ? "+" : ""}
             {Number.isInteger(trend.value) ? trend.value : trend.value.toFixed(1)}
             {trend.unit}
           </>
-        ) : (
-          "本週最常被詢問"
         )}
       </p>
     </div>
   );
 }
 
-function HealthCard({ company }: { company: CompanyOverview }) {
+/** 問題分類 TOP1：獨立的深色區塊，與 7 項數字區隔開來。 */
+function TopIssueBlock({ field }: { field: LiveStatField }) {
   return (
-    <div className={`${CARD} flex items-center justify-between gap-8 px-8 py-4`}>
-      <div className="flex items-center gap-6">
-        <div>
-          <p className="mb-1 text-sm font-medium text-slate-500">目前健康度</p>
-          <div className="font-number">
-            <HealthScore health={company.health} size="xl" />
-          </div>
-        </div>
-        <div>
-          <span className={`rounded-md px-2.5 py-1 text-sm font-semibold ${BAND_PILL[company.health.band]}`}>
-            {HEALTH_BAND_LABEL[company.health.band]}
-          </span>
-          <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-slate-500">{company.health.formula}</p>
-        </div>
+    <div
+      className="flex flex-col justify-between rounded-[10px] bg-gradient-to-br from-slate-800 to-slate-900 px-4 py-3 text-white shadow-[0_4px_6px_-1px_rgba(15,23,42,0.18)]"
+      style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: "0.4s" }}
+    >
+      <div className="flex items-center gap-2.5">
+        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-500/20 text-sky-300">
+          <IconTag className="h-[18px] w-[18px]" />
+        </span>
+        <span className="truncate text-lg font-medium text-slate-300">{field.label}</span>
       </div>
-      <div className="max-w-[300px] shrink-0">
-        <p className="mb-2 text-sm font-medium text-slate-500">購買模組</p>
-        <div className="flex flex-wrap gap-2">
-          {company.modules.length === 0 ? (
-            <span className="text-sm text-slate-400">尚未設定</span>
-          ) : (
-            company.modules.map((m) => (
-              <span key={m.id} className="rounded-md bg-sky-100 px-3 py-1 text-sm font-medium text-sky-700">
-                {m.name}
-              </span>
-            ))
-          )}
-        </div>
-      </div>
+      <p className="truncate text-[34px] font-bold leading-tight text-white">{field.value}</p>
+      <p className="text-base font-medium text-sky-300">本週最常被詢問</p>
     </div>
   );
 }
@@ -480,42 +462,11 @@ function Panel({
 function EmptyRow({ children, muted }: { children: ReactNode; muted?: boolean }) {
   return (
     <div
-      className={`flex flex-1 items-center justify-center text-base font-medium ${
+      className={`flex flex-1 items-center justify-center text-lg font-medium ${
         muted ? "text-slate-400" : "text-emerald-600"
       }`}
     >
       {children}
     </div>
   );
-}
-
-function ChartCard({
-  title,
-  legend,
-  children,
-}: {
-  title: string;
-  legend: { color: string; label: string }[];
-  children: ReactNode;
-}) {
-  return (
-    <div className={`${CARD} flex h-full flex-col p-4`}>
-      <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-xl font-semibold text-slate-700">{title}</h3>
-        <div className="flex gap-4 text-sm text-slate-500">
-          {legend.map((l) => (
-            <span key={l.label} className="flex items-center gap-1.5">
-              <span className={`h-2.5 w-2.5 rounded-full ${l.color}`} />
-              {l.label}
-            </span>
-          ))}
-        </div>
-      </div>
-      <div className="relative min-h-0 flex-1">{children}</div>
-    </div>
-  );
-}
-
-function ChartEmpty({ children }: { children: ReactNode }) {
-  return <div className="flex h-full items-center justify-center text-sm text-slate-400">{children}</div>;
 }

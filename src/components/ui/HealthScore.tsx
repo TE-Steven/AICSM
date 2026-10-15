@@ -13,14 +13,22 @@ export function HealthScore({
   tone = "light",
 }: {
   health: HealthResult;
-  size?: "md" | "lg" | "xl" | "huge";
+  size?: "md" | "lg" | "xl" | "hero" | "huge";
   popoverSide?: "left" | "right";
   /** dark＝放在深色背景上，數字改用較亮的顏色、資訊圖示改淺色 */
   tone?: "light" | "dark";
 }) {
   const [open, setOpen] = useState(false);
   const numberSize =
-    size === "huge" ? "text-[11rem]" : size === "xl" ? "text-7xl" : size === "lg" ? "text-5xl" : "text-3xl";
+    size === "huge"
+      ? "text-[11rem]"
+      : size === "hero"
+        ? "text-[7.5rem]"
+        : size === "xl"
+          ? "text-7xl"
+          : size === "lg"
+            ? "text-5xl"
+            : "text-3xl";
   const numberColor =
     tone === "dark" ? healthTextClassDark(health.score) : healthTextClass(health.score);
 
@@ -43,7 +51,11 @@ export function HealthScore({
           tone === "dark" ? "text-blue-200/70 hover:text-white" : "text-slate-400 hover:text-brand-600"
         }`}
       >
-        <IconInfo className={size === "huge" ? "h-10 w-10" : size === "xl" ? "h-6 w-6" : "h-5 w-5"} />
+        <IconInfo
+          className={
+            size === "huge" ? "h-10 w-10" : size === "hero" ? "h-8 w-8" : size === "xl" ? "h-6 w-6" : "h-5 w-5"
+          }
+        />
       </button>
 
       {open && (

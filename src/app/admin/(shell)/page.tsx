@@ -3,6 +3,7 @@ import { prisma } from "@/lib/db";
 import { getCompanyOverviews } from "@/lib/company";
 import { ConfirmSubmitButton } from "@/components/ConfirmSubmitButton";
 import { SuccessToast } from "@/components/Toast";
+import { TvLaunchButton } from "@/components/TvLaunchButton";
 import { Card, CardHeader } from "@/components/ui/Card";
 import { HealthBar } from "@/components/ui/HealthBar";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -53,10 +54,13 @@ export default async function AdminHomePage({
         title="總覽"
         description="所有客戶公司的健康度、未結案 issue 與模組採用概況"
         actions={
-          <a href="/tv" target="_blank" rel="noreferrer" className={btn("primary")}>
+          <TvLaunchButton
+            companies={companies.map((c) => ({ id: c.id, name: c.name }))}
+            className={btn("primary")}
+          >
             <IconPlay className="h-4 w-4" />
             播放電視牆
-          </a>
+          </TvLaunchButton>
         }
       />
 
