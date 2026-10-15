@@ -13,7 +13,7 @@ import {
   YAxis,
 } from "recharts";
 
-const AXIS_TICK = { fill: "#64748b", fontSize: 12 };
+const AXIS_TICK = { fill: "#64748b", fontSize: 14 };
 
 function shorten(name: string, max = 7): string {
   return name.length > max ? `${name.slice(0, max)}…` : name;
@@ -38,10 +38,10 @@ export function CategoryBarChart({
         <XAxis dataKey="name" tick={AXIS_TICK} tickLine={false} axisLine={{ stroke: "#cbd5e1" }} interval={0} />
         <YAxis tick={AXIS_TICK} tickLine={false} axisLine={false} allowDecimals={false} />
         <Bar dataKey="已完成" fill="#0ea5e9" radius={[3, 3, 0, 0]} isAnimationActive={false}>
-          <LabelList dataKey="已完成" position="top" style={{ fill: "#334155", fontSize: 12, fontWeight: 600 }} />
+          <LabelList dataKey="已完成" position="top" style={{ fill: "#334155", fontSize: 14, fontWeight: 600 }} />
         </Bar>
         <Bar dataKey="未完成" fill="#f59e0b" radius={[3, 3, 0, 0]} isAnimationActive={false}>
-          <LabelList dataKey="未完成" position="top" style={{ fill: "#334155", fontSize: 12, fontWeight: 600 }} />
+          <LabelList dataKey="未完成" position="top" style={{ fill: "#334155", fontSize: 14, fontWeight: 600 }} />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -77,7 +77,7 @@ export function ScoreTrendChart({ data }: { data: { label: string; score: number
             dataKey="score"
             position="top"
             formatter={(v: unknown) => (typeof v === "number" ? `${Math.round(v)}%` : "")}
-            style={{ fill: "#334155", fontSize: 12, fontWeight: 600 }}
+            style={{ fill: "#334155", fontSize: 14, fontWeight: 600 }}
           />
         </Line>
       </LineChart>

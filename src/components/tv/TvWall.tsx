@@ -19,9 +19,13 @@ import {
   IconUsers,
 } from "@/components/icons";
 
-/** 電視牆固定以 1920×1080 的畫布設計，再依實際螢幕整張等比縮放，任何解析度都不會跑版。 */
-const STAGE_W = 1920;
-const STAGE_H = 1080;
+/**
+ * 電視牆以「最小設計尺寸」為基準整張縮放，畫布再依視窗長寬比補足，
+ * 所以不論螢幕比例或解析度都會填滿整個畫面、不留白邊，也不會跑版。
+ * 縮放用 CSS zoom（重新排版繪製，文字清晰），不用 transform: scale（會讓文字發糊）。
+ */
+const MIN_W = 1500;
+const MIN_H = 880;
 
 /** 每家公司在電視牆停留的時間（毫秒）。 */
 const SLIDE_MS = 15000;
@@ -126,9 +130,9 @@ export function TvWall({
 
   const company = companies[index < companies.length ? index : 0];
 
-  const scale = view ? Math.min(view.w / STAGE_W, view.h / STAGE_H) : 1;
-  const offsetX = view ? (view.w - STAGE_W * scale) / 2 : 0;
-  const offsetY = view ? (view.h - STAGE_H * scale) / 2 : 0;
+  const scale = view ? Math.min(view.w / MIN_W, view.h / MIN_H) : 1;
+  const stageW = view ? view.w / scale : MIN_W;
+  const stageH = view ? view.h / scale : MIN_H;
 
   return (
     <div
@@ -138,10 +142,9 @@ export function TvWall({
       <div
         className="absolute left-0 top-0"
         style={{
-          width: STAGE_W,
-          height: STAGE_H,
-          transform: `translate(${offsetX}px, ${offsetY}px) scale(${scale})`,
-          transformOrigin: "top left",
+          width: stageW,
+          height: stageH,
+          zoom: scale,
         }}
       >
         {company && (
@@ -201,7 +204,7 @@ function Dashboard({
     : 0;
 
   return (
-    <div className="grid h-full grid-rows-[auto_auto_minmax(0,1fr)_200px] gap-5 p-6">
+    <div className="grid h-full grid-rows-[auto_auto_minmax(0,1fr)_170px] gap-4 p-5">
       {/* Header */}
       <header className="flex items-center justify-between gap-8 rounded-xl bg-slate-800 px-6 py-3.5 text-white">
         <div className="flex items-center gap-4">
@@ -215,7 +218,7 @@ function Dashboard({
 
         <div className="text-right text-slate-400">
           <p className="font-number text-base font-medium text-slate-300">{formatHeaderDate(generatedAt)}</p>
-          <p className="text-xs">
+          <p className="text-sm">
             資料更新 {taipei(generatedAt, { hour: "2-digit", minute: "2-digit" })}
             {paused && "・已暫停"}
           </p>
@@ -223,8 +226,8 @@ function Dashboard({
       </header>
 
       {/* KPI Row：左半 8 項使用數據（4×2）＋右半健康度與購買模組 */}
-      <section className="grid grid-cols-2 gap-5">
-        <div className="grid grid-cols-4 gap-2.5">
+      <section className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-4 gap-2">
           {fields.map((f, i) => (
             <KpiMini key={f.key} field={f} index={i} />
           ))}
@@ -239,7 +242,7 @@ function Dashboard({
           title="未結案 Issue"
           sub={`共 ${company.openIssueCount} 件・最久遠 3 筆`}
         >
-          <div className="grid grid-cols-[40px_1fr_70px_90px_130px] items-center gap-3 rounded-md bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
+          <div className="grid grid-cols-[40px_1fr_70px_90px_130px] items-center gap-3 rounded-md bg-slate-50 px-3 py-2 text-sm font-medium text-slate-500">
             <span />
             <span>項目名稱</span>
             <span className="text-center">優先級</span>
@@ -263,11 +266,11 @@ function Dashboard({
                     >
                       !
                     </span>
-                    <span className="truncate text-base font-medium text-slate-900">{issue.title}</span>
-                    <span className={`rounded-md py-1 text-center text-xs font-semibold ${priority.cls}`}>
+                    <span className="truncate text-lg font-medium text-slate-900">{issue.title}</span>
+                    <span className={`rounded-md py-1 text-center text-sm font-semibold ${priority.cls}`}>
                       {priority.label}
                     </span>
-                    <span className={`rounded-full py-1 text-center text-xs font-medium ${status.cls}`}>
+                    <span className={`rounded-full py-1 text-center text-sm font-medium ${status.cls}`}>
                       {status.label}
                     </span>
                     <span className="text-right">
@@ -295,7 +298,7 @@ function Dashboard({
               : "尚無評比紀錄"
           }
         >
-          <div className="grid grid-cols-[28px_1fr_130px_60px_70px] items-center gap-3 rounded-md bg-slate-50 px-3 py-2 text-xs font-medium text-slate-500">
+          <div className="grid grid-cols-[28px_1fr_130px_60px_70px] items-center gap-3 rounded-md bg-slate-50 px-3 py-2 text-sm font-medium text-slate-500">
             <span />
             <span>檢核項目</span>
             <span>構面</span>
@@ -315,7 +318,7 @@ function Dashboard({
                 >
                   <span className="mx-auto h-[18px] w-[18px] rounded border-2 border-slate-300" />
                   <span className="min-w-0">
-                    <span className="block truncate text-base font-medium text-slate-900">{row.itemName}</span>
+                    <span className="block truncate text-lg font-medium text-slate-900">{row.itemName}</span>
                     {(row.actionNote ?? row.defaultAction) && (
                       <span className="block truncate text-sm text-slate-500">
                         {row.actionNote ?? row.defaultAction}
@@ -324,7 +327,7 @@ function Dashboard({
                   </span>
                   <span className="truncate text-sm text-slate-500">{row.pathLabel.split(PATH_SEPARATOR)[0]}</span>
                   <span className="font-number text-center text-base font-bold text-slate-700">{row.weight}</span>
-                  <span className="rounded-full bg-sky-100 py-1 text-center text-xs font-medium text-sky-600">
+                  <span className="rounded-full bg-sky-100 py-1 text-center text-sm font-medium text-sky-600">
                     待辦
                   </span>
                 </li>
@@ -383,20 +386,20 @@ function KpiMini({ field, index }: { field: LiveStatField; index: number }) {
 
   return (
     <div
-      className={`${CARD} flex flex-col gap-2 px-3.5 py-3`}
+      className={`${CARD} flex flex-col gap-1.5 px-3.5 py-2.5`}
       style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: `${0.05 + index * 0.05}s` }}
     >
       <div className="flex items-center gap-2">
         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
           <Icon className="h-4 w-4" />
         </span>
-        <span className="truncate text-sm font-medium text-slate-500">{field.label}</span>
+        <span className="truncate text-base font-medium text-slate-500">{field.label}</span>
       </div>
-      <p className={`font-number truncate font-bold leading-none text-slate-900 ${isText ? "text-2xl" : "text-[36px]"}`}>
+      <p className={`font-number truncate font-bold leading-none text-slate-900 ${isText ? "text-[26px]" : "text-[40px]"}`}>
         {field.value}
       </p>
       <p
-        className={`font-number text-xs font-medium ${
+        className={`font-number text-sm font-medium ${
           trend ? (good ? "text-emerald-500" : "text-red-500") : "text-slate-400"
         }`}
       >
@@ -428,7 +431,7 @@ function HealthCard({ company }: { company: CompanyOverview }) {
           <span className={`rounded-md px-2.5 py-1 text-sm font-semibold ${BAND_PILL[company.health.band]}`}>
             {HEALTH_BAND_LABEL[company.health.band]}
           </span>
-          <p className="mt-2 max-w-[300px] text-xs leading-relaxed text-slate-500">{company.health.formula}</p>
+          <p className="mt-2 max-w-[300px] text-sm leading-relaxed text-slate-500">{company.health.formula}</p>
         </div>
       </div>
       <div className="max-w-[300px] shrink-0">
@@ -463,11 +466,11 @@ function Panel({
   return (
     <div className={`${CARD} flex min-h-0 flex-col p-5`}>
       <div className="mb-3 flex items-center justify-between border-b-2 border-slate-200 pb-3">
-        <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-700">
+        <h2 className="flex items-center gap-2 text-xl font-semibold text-slate-700">
           {icon}
           {title}
         </h2>
-        {sub && <span className="text-xs font-medium text-sky-500">{sub}</span>}
+        {sub && <span className="text-sm font-medium text-sky-500">{sub}</span>}
       </div>
       {children}
     </div>
@@ -498,8 +501,8 @@ function ChartCard({
   return (
     <div className={`${CARD} flex h-full flex-col p-4`}>
       <div className="mb-2 flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-slate-700">{title}</h3>
-        <div className="flex gap-4 text-xs text-slate-500">
+        <h3 className="text-xl font-semibold text-slate-700">{title}</h3>
+        <div className="flex gap-4 text-sm text-slate-500">
           {legend.map((l) => (
             <span key={l.label} className="flex items-center gap-1.5">
               <span className={`h-2.5 w-2.5 rounded-full ${l.color}`} />
