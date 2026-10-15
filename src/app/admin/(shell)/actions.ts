@@ -20,6 +20,7 @@ export async function seedAicsmAction(): Promise<void> {
     report.industries && `${report.industries} 個行業別`,
     report.modules && `${report.modules} 個模組`,
     report.companies && `${report.companies} 家公司`,
+    report.companyDetails && `${report.companyDetails} 家公司的說明與痛點`,
     report.checkItems && `${report.checkItems} 個檢核項目`,
   ].filter(Boolean);
 

@@ -203,8 +203,9 @@ function Dashboard({
   rotate: boolean;
 }) {
   const fields = liveStatFields(company.live.stats);
-  const topIssue = fields.find((f) => f.key === "topIssueCategory");
-  const kpis = fields.filter((f) => f.key !== "topIssueCategory");
+  const topAi = fields.find((f) => f.key === "aiTopIssue");
+  const topAgent = fields.find((f) => f.key === "agentTopIssue");
+  const kpis = fields.filter((f) => f.key !== "aiTopIssue" && f.key !== "agentTopIssue");
   const unfinishedTotal = company.latestAssessment
     ? company.latestAssessment.stats.totalCount - company.latestAssessment.stats.doneCount
     : 0;
@@ -230,15 +231,11 @@ function Dashboard({
         </div>
       </header>
 
-      {/* 左：健康度（含購買模組）｜右：7 項數據＋問題分類 TOP1 獨立區塊 */}
-      <section className="grid grid-cols-[minmax(0,2fr)_minmax(0,5fr)] gap-4">
+      {/* 上半部：健康度｜7 個數值（同一個大區塊）｜問題分類 TOP1（獨立區塊，分智能／人工） */}
+      <section className="grid grid-cols-[minmax(0,2.2fr)_minmax(0,5fr)_minmax(0,2.4fr)] gap-4">
         <HealthCard company={company} />
-        <div className="grid grid-cols-4 grid-rows-2 gap-2">
-          {kpis.map((f, i) => (
-            <KpiTile key={f.key} field={f} index={i} />
-          ))}
-          {topIssue && <TopIssueBlock field={topIssue} />}
-        </div>
+        <StatsBlock rows={[kpis.slice(0, 4), kpis.slice(4)]} />
+        <TopIssueBlock ai={topAi} agent={topAgent} />
       </section>
 
       {/* Middle Row：Issue ＋ 待辦（未完成健檢項目） */}
@@ -350,7 +347,7 @@ function HealthCard({ company }: { company: CompanyOverview }) {
   return (
     <div className={`${CARD} flex flex-col justify-between px-6 py-4`}>
       <div>
-        <p className="mb-1 text-base font-medium text-slate-500">目前健康度</p>
+        <p className="mb-1 text-xl font-semibold text-slate-700">目前健康度</p>
         <div className="flex items-end gap-3">
           <div className="font-number">
             <HealthScore health={company.health} size="hero" />
@@ -361,7 +358,7 @@ function HealthCard({ company }: { company: CompanyOverview }) {
         </div>
       </div>
       <div>
-        <p className="mb-1.5 text-sm font-medium text-slate-500">購買模組</p>
+        <p className="mb-1.5 text-base font-semibold text-slate-700">購買模組</p>
         <div className="flex flex-wrap gap-1.5">
           {company.modules.length === 0 ? (
             <span className="text-sm text-slate-400">尚未設定</span>
@@ -378,7 +375,28 @@ function HealthCard({ company }: { company: CompanyOverview }) {
   );
 }
 
-function KpiTile({ field, index }: { field: LiveStatField; index: number }) {
+/** 7 個數值放在同一個大區塊裡，用細線分隔（智能 4 項一排、客服 3 項一排）。 */
+function StatsBlock({ rows }: { rows: LiveStatField[][] }) {
+  return (
+    <div
+      className={`${CARD} flex flex-col divide-y divide-slate-200 px-2 py-1`}
+      style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: "0.1s" }}
+    >
+      {rows.map((row, rowIndex) => (
+        <div
+          key={rowIndex}
+          className={`grid flex-1 divide-x divide-slate-200 ${row.length === 4 ? "grid-cols-4" : "grid-cols-3"}`}
+        >
+          {row.map((field) => (
+            <StatItem key={field.key} field={field} />
+          ))}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function StatItem({ field }: { field: LiveStatField }) {
   const meta = KPI_ICON[field.key];
   const Icon = meta.icon;
   const trend = field.trend;
@@ -387,17 +405,14 @@ function KpiTile({ field, index }: { field: LiveStatField; index: number }) {
   const good = trend ? (field.lowerIsBetter ? !up : up) : false;
 
   return (
-    <div
-      className={`${CARD} flex flex-col justify-between px-4 py-3`}
-      style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: `${0.05 + index * 0.05}s` }}
-    >
-      <div className="flex items-center gap-2.5">
-        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
-          <Icon className="h-[18px] w-[18px]" />
+    <div className="flex min-w-0 flex-col justify-center gap-1 px-4 py-2">
+      <div className="flex items-center gap-2">
+        <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-md ${meta.tint}`}>
+          <Icon className="h-4 w-4" />
         </span>
-        <span className="truncate text-lg font-medium text-slate-500">{field.label}</span>
+        <span className="truncate text-lg font-semibold text-slate-700">{field.label}</span>
       </div>
-      <p className="font-number truncate text-[50px] font-bold leading-none text-slate-900">{field.value}</p>
+      <p className="font-number truncate text-[44px] font-bold leading-none text-slate-900">{field.value}</p>
       <p
         className={`font-number text-base font-medium ${
           trend ? (good ? "text-emerald-500" : "text-red-500") : "text-slate-400"
@@ -415,21 +430,31 @@ function KpiTile({ field, index }: { field: LiveStatField; index: number }) {
   );
 }
 
-/** 問題分類 TOP1：獨立的深色區塊，與 7 項數字區隔開來。 */
-function TopIssueBlock({ field }: { field: LiveStatField }) {
+/** 問題分類 TOP1：完全獨立的深色區塊，分「智能客服」與「人工客服」兩種。 */
+function TopIssueBlock({ ai, agent }: { ai?: LiveStatField; agent?: LiveStatField }) {
   return (
     <div
-      className="flex flex-col justify-between rounded-[10px] bg-gradient-to-br from-slate-800 to-slate-900 px-4 py-3 text-white shadow-[0_4px_6px_-1px_rgba(15,23,42,0.18)]"
-      style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: "0.4s" }}
+      className="flex flex-col rounded-[10px] bg-gradient-to-br from-slate-800 to-slate-900 text-white shadow-[0_4px_6px_-1px_rgba(15,23,42,0.18)]"
+      style={{ animation: "slideUpSoft 0.5s ease-out both", animationDelay: "0.2s" }}
     >
-      <div className="flex items-center gap-2.5">
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-sky-500/20 text-sky-300">
-          <IconTag className="h-[18px] w-[18px]" />
-        </span>
-        <span className="truncate text-lg font-medium text-slate-300">{field.label}</span>
+      <p className="flex items-center gap-2 px-5 pb-1 pt-4 text-xl font-semibold text-white">
+        <IconTag className="h-5 w-5 text-sky-300" />
+        問題分類 TOP1
+      </p>
+      <div className="flex flex-1 flex-col divide-y divide-white/15">
+        <TopIssueRow label="智能客服" value={ai?.value} />
+        <TopIssueRow label="人工客服" value={agent?.value} />
       </div>
-      <p className="truncate text-[34px] font-bold leading-tight text-white">{field.value}</p>
-      <p className="text-base font-medium text-sky-300">本週最常被詢問</p>
+    </div>
+  );
+}
+
+function TopIssueRow({ label, value }: { label: string; value?: string }) {
+  return (
+    <div className="flex flex-1 flex-col justify-center px-5 py-2">
+      <span className="text-lg font-semibold text-sky-300">{label}</span>
+      <span className="truncate text-[32px] font-bold leading-tight text-white">{value ?? "—"}</span>
+      <span className="text-base text-slate-300">本週最常被詢問</span>
     </div>
   );
 }

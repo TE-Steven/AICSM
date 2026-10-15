@@ -90,7 +90,7 @@ export default async function CompanyOverviewPage({
               : "來自客服系統 API"
           }
         />
-        <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 p-5 md:grid-cols-3">
           {liveStatFields(overview.live.stats).map((f) => (
             <div key={f.label} className="rounded-lg bg-slate-50 px-4 py-3">
               <p className="text-xs font-bold text-slate-700">{f.label}</p>

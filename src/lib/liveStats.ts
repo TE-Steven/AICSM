@@ -13,7 +13,8 @@ export interface LiveStats {
   agentServiceCount: number; // 客服服務人次
   agentSatisfaction: number; // 客服滿意度（%）
   ticketCount: number; // 工單數
-  topIssueCategory: string; // 問題分類 TOP1
+  aiTopIssueCategory: string; // 智能客服問題分類 TOP1
+  agentTopIssueCategory: string; // 人工客服問題分類 TOP1
   /**
    * 較上週變化：人次／工單數為百分比（%），各種比率為百分點（pt）。
    * 沒有資料的欄位不用填，畫面就不顯示趨勢。
@@ -39,6 +40,15 @@ const TOP_ISSUE_CATEGORIES = [
   "服務中斷回報",
 ];
 
+const AGENT_TOP_ISSUE_CATEGORIES = [
+  "客訴處理",
+  "退換貨爭議",
+  "訂單異常",
+  "帳務與退款",
+  "設備故障排除",
+  "複雜案件轉單",
+];
+
 function hashText(text: string): number {
   let hash = 0;
   for (let i = 0; i < text.length; i++) {
@@ -61,7 +71,8 @@ function mockLiveStats(seedText: string): LiveStats {
     agentServiceCount: pick(150, 900, 2),
     agentSatisfaction: pick(80, 98, 6),
     ticketCount: pick(20, 260, 7),
-    topIssueCategory: TOP_ISSUE_CATEGORIES[seed % TOP_ISSUE_CATEGORIES.length],
+    aiTopIssueCategory: TOP_ISSUE_CATEGORIES[seed % TOP_ISSUE_CATEGORIES.length],
+    agentTopIssueCategory: AGENT_TOP_ISSUE_CATEGORIES[(seed >>> 3) % AGENT_TOP_ISSUE_CATEGORIES.length],
     trends: {
       aiServiceCount: pick(-8, 14, 11),
       aiRecognitionRate: pick(-3, 4, 12) + 0.5,
@@ -107,6 +118,7 @@ export function liveStatFields(stats: LiveStats): LiveStatField[] {
     { key: "agentServiceCount", label: "客服服務人次", value: stats.agentServiceCount.toLocaleString("zh-TW"), trend: trendOf(stats.trends?.agentServiceCount, "%") },
     { key: "agentSatisfaction", label: "客服滿意度", value: `${stats.agentSatisfaction}%`, rate: stats.agentSatisfaction, trend: trendOf(stats.trends?.agentSatisfaction, "pt") },
     { key: "ticketCount", label: "工單數", value: stats.ticketCount.toLocaleString("zh-TW"), lowerIsBetter: true, trend: trendOf(stats.trends?.ticketCount, "%") },
-    { key: "topIssueCategory", label: "問題分類 TOP1", value: stats.topIssueCategory },
+    { key: "aiTopIssue", label: "智能問題分類 TOP1", value: stats.aiTopIssueCategory },
+    { key: "agentTopIssue", label: "人工問題分類 TOP1", value: stats.agentTopIssueCategory },
   ];
 }
