@@ -671,4 +671,67 @@ export const CHECKLIST_FRAMEWORK: RootSpec[] = [
       },
     ],
   },
+  {
+    name: "旅宿服務客服",
+    description: "旅宿業特有的訂房、住宿期間與評價營運相關客服場景。",
+    isUniversal: false,
+    industryNames: ["旅宿服務"],
+    categories: [
+      {
+        name: "訂房與入住退房",
+        leaves: [
+          {
+            name: "訂房諮詢與房況／房價回覆時效",
+            defaultWeight: 2,
+            defaultAction: "整合官網、LINE 與 OTA 的房況與房價資料，讓機器人可即時回覆空房與價格，減少錯失訂房機會。",
+          },
+          {
+            name: "訂單異動與取消退款處理",
+            defaultWeight: 2,
+            defaultAction: "建立訂單改期、取消與退款的標準流程與自動通知，避免人工查證耗時與政策說法不一。",
+          },
+          {
+            name: "入住退房流程與櫃檯協作",
+            defaultWeight: 1,
+            defaultAction: "建立線上客服與櫃檯的即時資訊同步（提早入住、延遲退房、行李寄放），避免住客到店還要重複說明。",
+          },
+        ],
+      },
+      {
+        name: "住宿期間服務",
+        leaves: [
+          {
+            name: "客房需求與設施報修回應時效",
+            defaultWeight: 3,
+            defaultAction: "建立客房需求（備品、清潔、報修）工單與派工通知並設定回應時效，住宿期間的延遲最容易變成負評。",
+          },
+          {
+            name: "住客客訴即時通報與升級",
+            defaultWeight: 2,
+            defaultAction: "建立夜間與假日的客訴通報與主管升級機制，嚴重事件須即時處理並留存紀錄。",
+          },
+          {
+            name: "旅遊與周邊資訊諮詢知識庫",
+            defaultWeight: 1,
+            defaultAction: "整理周邊交通、景點與餐飲資訊供機器人回覆，減少櫃檯重複回答。",
+          },
+        ],
+      },
+      {
+        name: "評價與旺季營運",
+        leaves: [
+          {
+            name: "旺季／連假客服量能",
+            defaultWeight: 2,
+            defaultAction: "連假與旺季前評估排班與自動回覆分流，避免訂房與詢問量暴增時無法消化。",
+          },
+          {
+            name: "OTA／Google 評論監測與回覆",
+            defaultWeight: 2,
+            defaultAction: "建立 OTA 與 Google 評論監測告警並指派專人回覆，負評回覆時效直接影響訂房轉換。",
+          },
+        ],
+      },
+    ],
+  },
 ];

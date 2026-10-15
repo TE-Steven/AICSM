@@ -9,7 +9,7 @@ import { CHECKLIST_FRAMEWORK } from "@/lib/seedChecklists";
  */
 
 const COMMON_INDUSTRY = "通用";
-const INDUSTRIES = [COMMON_INDUSTRY, "餐飲連鎖", "零售", "數位平台", "消費家電", "美業"];
+const INDUSTRIES = [COMMON_INDUSTRY, "餐飲連鎖", "零售", "數位平台", "消費家電", "美業", "旅宿服務"];
 const MODULES = ["文字智能", "語音智能", "文字客服", "文字顧問", "語音"];
 const COMPANIES: { name: string; industry: string }[] = [
   { name: "王品", industry: "餐飲連鎖" },
@@ -20,6 +20,7 @@ const COMPANIES: { name: string; industry: string }[] = [
   { name: "曜胜", industry: "美業" },
   { name: "群光電子", industry: "消費家電" },
   { name: "追覓家電", industry: "消費家電" },
+  { name: "柯達飯店", industry: "旅宿服務" },
 ];
 
 export interface SeedReport {
